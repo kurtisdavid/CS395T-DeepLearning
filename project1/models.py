@@ -93,11 +93,10 @@ class ResNet(nn.Module):
 
 
 class AlexNet(nn.Module):
-    def __init__(self, init_output = 64):
+    def __init__(self):
         super(AlexNet,self).__init__()
         self.conv_params = {'kernel_size': 3, 'stride': 1, 'padding': 1}
         self.maxpool_params = {'kernel_size': 2, 'stride': 1, 'padding': 1, 'dilation': 1}
-        self.init_output = init_output
 
         self.width = 186
         self.height = 171
@@ -154,11 +153,10 @@ class AlexNet(nn.Module):
 
 
 class VGG(nn.Module):
-    def __init__(self, init_output = 64):
+    def __init__(self):
         super(VGG,self).__init__()
         self.conv_params = {'kernel_size': 3, 'stride': 1, 'padding': 1}
         self.maxpool_params = {'kernel_size': 2, 'stride': 2, 'padding': 1, 'dilation': 1}
-        self.init_output = init_output
 
         self.layers = []
 
