@@ -43,7 +43,7 @@ class ResNet(nn.Module):
             for j in range(num_repeat[i-2]):
                 self.create_block(in_channels, out_channels, j)
                 if j == 0:
-                    self.add_transition(in_channels, out_channels)
+                    self.add_transition(in_channels, out_channels * 4 if self.bottleneck else out_channels)
                 if self.bottleneck:
                     in_channels = out_channels * 4
                 else:
@@ -73,7 +73,7 @@ class ResNet(nn.Module):
                 nn.Conv2d(in_channels, out_channels, stride = 1, **self.conv_params),
                 nn.BatchNorm2d(num_features = out_channels),
                 nn.ReLU(inplace=True),
-                nn.Conv2d(out_channels, out_channels, stride = 2 if block_num == 0 else 1, **self.conv_params),
+                nn.Conv2d(out_channels, out_channels, stride = 2 if (block_num == 0 and self.res_layer > 2) else 1, **self.conv_params),
                 nn.BatchNorm2d(num_features = out_channels)
             )
 #             print("Added", "conv" + str(self.res_layer) + "_" + str(block_num), "input: " + str(in_channels), "output: " + str(out_channels))
@@ -87,8 +87,8 @@ class ResNet(nn.Module):
 
     def add_transition(self, in_channel, out_channel):
         transition = nn.Sequential(
-            nn.Conv2d(in_channel, out_channel * 4, stride = 2 if self.res_layer > 2 else 1, kernel_size = 1),
-            nn.BatchNorm2d(num_features = out_channel*4),
+            nn.Conv2d(in_channel, out_channel, stride = 2 if self.res_layer > 2 else 1, kernel_size = 1),
+            nn.BatchNorm2d(num_features = out_channel),
         )
 #         transition = nn.AvgPool2d(kernel_size = 3, stride = 2 if self.res_layer > 2 else 1, padding = 1)
         self.add_module("transition"+ str(self.res_layer), transition)
@@ -109,7 +109,6 @@ class ResNet(nn.Module):
         X = self.global_avg(X)
         X = X.view(X.shape[0],-1)
         X = self.output(X)
-        print(X.shape)
         return X.view(-1)
 
 class AlexNet(nn.Module):

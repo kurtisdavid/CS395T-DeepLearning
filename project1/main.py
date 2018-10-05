@@ -4,8 +4,10 @@ import models
 import numpy as np
 import pickle
 import torch
+import time
 import torch.nn as nn
 from torchvision import transforms, datasets
+import torchvision.models
 
 def train(model, name):
     # image pre-processing
@@ -30,7 +32,7 @@ def train(model, name):
     # training
     model.to(device)
 
-    optim = torch.optim.Adam(model.parameters(), lr = 0.001, betas = (0.9,0.999))
+    optim = torch.optim.Adam(model.parameters(), lr = 0.0001, betas = (0.9,0.999))
     loss_metric = nn.L1Loss()
     n_epochs = 50
     iteration = 0
@@ -43,7 +45,7 @@ def train(model, name):
         epoch_losses = []
         for batch_input, batch_labels in dataloader:
             if iteration % 25 == 0:
-                print(iteration, end = "\r")
+                print(iteration)
 
             # make sure to zero out gradient
             model.train()
@@ -54,27 +56,28 @@ def train(model, name):
             batch_labels = label_mapping_scaled[batch_labels].to(device)
 
             loss = loss_metric(model(batch_input), batch_labels)
-            epoch_losses.append(loss.data)
+            epoch_losses.append(loss.item())
 
             loss.backward()
             optim.step()
-
             # evaluation
-            if iteration % 50 == 0:
-                train_losses.append(loss.data)
+            if iteration % 100 == 0:
+                train_losses.append(loss.item())
 
                 model.eval()
+                print("Evaluating...", end = "\r")
                 losses = []
-                for batch_input,batch_labels in val_dataloader:
-                    batch_input = batch_input.to(device)
-                    batch_labels = label_mapping_scaled_v[batch_labels].to(device)
-                    res = model(batch_input)
-                    loss = loss_metric(res, batch_labels)
-                    losses.append(loss.data)
+                with torch.no_grad():
+                    for batch_input,batch_labels in val_dataloader:
+                        batch_input = batch_input.to(device)
+                        batch_labels = label_mapping_scaled_v[batch_labels].to(device)
+                        res = model(batch_input)
+                        loss = loss_metric(res, batch_labels)
+                        losses.append(loss.item())
 
-                eval_losses.append(np.mean(losses))
-                iterations.append(iteration)
-                print("Iteration", iteration,"\t Train loss:", train_losses[-1], "Val loss:", str(eval_losses[-1]))
+                    eval_losses.append(np.mean(losses))
+                    iterations.append(iteration)
+                    print("Iteration", iteration,"\t Train loss:", train_losses[-1], "Val loss:", str(eval_losses[-1]))
 
             iteration += 1
 
