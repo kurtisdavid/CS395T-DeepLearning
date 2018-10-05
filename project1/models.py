@@ -1,13 +1,21 @@
+import torch.nn as nn
+import torch
+import math
+
 class ResNet(nn.Module):
-    def __init__(self, n_layers, final_output, bottleneck = False):
+
+    def __init__(self, n_layers, final_output):
         super(ResNet,self).__init__()
         self.conv_params = {'kernel_size': 3, 'padding': 1}
         self.width = 186
         self.height = 171
         self.layer_dict = {
             18: [2,2,2,2],
-            34: [3,4,6,3]
+            34: [3,4,6,3],
+            50: [3,4,6,3],
+            101: [3,4,23,3]
         }
+        self.bottleneck = True if n_layers in [50,101] else False
         self.layers = {}
 
         in_channels = 1
@@ -22,7 +30,8 @@ class ResNet(nn.Module):
         self.width = math.floor( (self.width - 1) / 2 + 1 )
         self.height = self.height / 2
         self.height = math.floor( (self.height - 1) / 2 + 1)
-        # print("Height is now:", self.height, "Width is now:", self.width)
+#         print("Height is now:", self.height, "Width is now:", self.width)
+
 
         in_channels = 64
 
@@ -32,39 +41,56 @@ class ResNet(nn.Module):
             # [ [blocks], transition ]
             self.layers[self.res_layer] = [[], None]
             for j in range(num_repeat[i-2]):
-                self.create_block(in_channels, out_channels, j, bottleneck)
+                self.create_block(in_channels, out_channels, j)
                 if j == 0:
-                    self.add_transition()
-                in_channels = out_channels
+                    self.add_transition(in_channels, out_channels)
+                if self.bottleneck:
+                    in_channels = out_channels * 4
+                else:
+                    in_channels = out_channels
             out_channels = out_channels * 2
-
+        self.relu = nn.ReLU(inplace=True)
         # global average pooling
         self.global_avg = nn.AvgPool2d(kernel_size = (self.width,self.height), stride = 1)
         # fully connected to final
         self.output = nn.Linear(in_channels,1)
 
-    def create_block(self, in_channels, out_channels, block_num, bottleneck):
-        block = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, stride = 1, **self.conv_params),
-            nn.BatchNorm2d(num_features = out_channels),
-            nn.ReLU(),
-            nn.Conv2d(out_channels, out_channels, stride = 2 if block_num == 0 else 1, **self.conv_params),
-            nn.BatchNorm2d(num_features = out_channels),
-            nn.ReLU()
-        )
+    def create_block(self, in_channels, out_channels, block_num):
+        if self.bottleneck:
+            block = nn.Sequential(
+                nn.Conv2d(in_channels, out_channels, stride = 1, kernel_size = 1),
+                nn.BatchNorm2d(num_features = out_channels),
+                nn.ReLU(inplace=True),
+                nn.Conv2d(out_channels, out_channels, stride = 1, **self.conv_params),
+                nn.BatchNorm2d(num_features = out_channels),
+                nn.ReLU(inplace=True),
+                nn.Conv2d(out_channels, out_channels*4, stride = 2 if (block_num == 0 and self.res_layer > 2) else 1, kernel_size = 1),
+                nn.BatchNorm2d(num_features = out_channels*4),
+            )
+#             print("Added", "conv_bottleneck" + str(self.res_layer) + "_" + str(block_num), "input: " + str(in_channels), "output: " + str(out_channels*4))
+        else:
+            block = nn.Sequential(
+                nn.Conv2d(in_channels, out_channels, stride = 1, **self.conv_params),
+                nn.BatchNorm2d(num_features = out_channels),
+                nn.ReLU(inplace=True),
+                nn.Conv2d(out_channels, out_channels, stride = 2 if block_num == 0 else 1, **self.conv_params),
+                nn.BatchNorm2d(num_features = out_channels)
+            )
+#             print("Added", "conv" + str(self.res_layer) + "_" + str(block_num), "input: " + str(in_channels), "output: " + str(out_channels))
         self.add_module("conv" + str(self.res_layer) + "_" + str(block_num), block)
         self.layers[self.res_layer][0].append(block)
-        # print("Added", "conv" + str(self.res_layer) + "_" + str(block_num), "input: " + str(in_channels), "output: " + str(out_channels))
 
-        if block_num == 0:
+        if block_num == 0 and self.res_layer > 2:
             self.height = math.floor( (self.height - 1) / 2 + 1)
             self.width = math.floor( (self.width - 1) / 2 + 1)
-            # print("Height is now:", self.height, "Width is now:", self.width)
+#             print("Height is now:", self.height, "Width is now:", self.width)
 
-    def add_transition(self):
+    def add_transition(self, in_channel, out_channel):
         transition = nn.Sequential(
-            nn.AvgPool2d(kernel_size = 3, stride = 2, padding = 1)
+            nn.Conv2d(in_channel, out_channel * 4, stride = 2 if self.res_layer > 2 else 1, kernel_size = 1),
+            nn.BatchNorm2d(num_features = out_channel*4),
         )
+#         transition = nn.AvgPool2d(kernel_size = 3, stride = 2 if self.res_layer > 2 else 1, padding = 1)
         self.add_module("transition"+ str(self.res_layer), transition)
         self.layers[self.res_layer][1] = transition
 
@@ -75,22 +101,16 @@ class ResNet(nn.Module):
         for i in range(2,self.res_layer + 1):
             layers,transition = self.layers[i]
             for j,layer in enumerate(layers):
+                identity = X
                 if j == 0:
-
-                    pool = transition(X)
-                    # dimension transition
-                    if i > 2:
-                        padding = (0,0,0,0,pool.shape[1]//2,pool.shape[1]//2,0,0)
-                        pool = nn.functional.pad(pool,padding)
-                    X = layer(X)
-                    X = X + pool
-                else:
-                    X = layer(X)
+                    identity = transition(X)
+                X = layer(X) + identity
+                X = self.relu(X)
         X = self.global_avg(X)
         X = X.view(X.shape[0],-1)
         X = self.output(X)
+        print(X.shape)
         return X.view(-1)
-
 
 class AlexNet(nn.Module):
     def __init__(self):
@@ -150,84 +170,3 @@ class AlexNet(nn.Module):
         x = x.view(x.size(0), 256 * self.width * self.height)
         x = self.classifier(x)
         return x.view(-1)
-
-
-class VGG(nn.Module):
-    def __init__(self):
-        super(VGG,self).__init__()
-        self.conv_params = {'kernel_size': 3, 'stride': 1, 'padding': 1}
-        self.maxpool_params = {'kernel_size': 2, 'stride': 2, 'padding': 1, 'dilation': 1}
-
-        self.layers = []
-
-        self.in_channels = 1
-        self.maxpool_out = -1
-        self.in_features = -1
-        self.width = 186
-        self.height = 171
-
-        # this assumes you can mix conv and maxpools, with all fc at the end
-        def conv(out_channels):
-            self.layers.append(nn.Sequential(
-                nn.Conv2d(self.in_channels, out_channels, **self.conv_params),
-                nn.BatchNorm2d(num_features = out_channels),
-                nn.LeakyReLU(0.2)
-            ))
-            self.in_channels = out_channels
-            # https://www.quora.com/How-can-I-calculate-the-size-of-output-of-convolutional-layer
-            self.width = math.floor((self.width - self.conv_params['kernel_size'] + 2*self.conv_params['padding'])/self.conv_params['stride'] + 1 )
-            self.height = math.floor((self.height - self.conv_params['kernel_size'] + 2*self.conv_params['padding'])/self.conv_params['stride'] + 1 )
-            # print("applied conv: image is now ", self.width, " by ", self.height, " by ", self.in_channels)
-            return self.layers[-1]
-
-        def maxpool_size(x):
-            kernel_size = self.maxpool_params['kernel_size']
-            padding = self.maxpool_params['padding']
-            stride = self.maxpool_params['stride']
-            dilation = self.maxpool_params['dilation']
-            return math.floor((x + 2 * padding - dilation * (kernel_size - 1) - 1) / stride  + 1)
-
-        def maxpool():
-            self.layers.append(nn.MaxPool2d(**self.maxpool_params))
-            self.width = maxpool_size(self.width)
-            self.height = maxpool_size(self.height)
-
-            self.maxpool_out = self.width * self.height * self.in_channels
-            print("applied maxpool: image is now ", self.width, " by ", self.height, " by ", self.in_channels)
-            return self.layers[-1]
-
-        def fc(out_features, first=False):
-            in_features = self.maxpool_out if first else self.in_features
-
-            self.layers.append(nn.Sequential(
-                nn.Linear(in_features, out_features),
-                nn.Sigmoid()
-            ))
-            self.in_features = out_features
-            return self.layers[-1]
-
-        # need them to be instance variables to be found by vgg.parameters() method
-        self.c1 = conv(64)
-        self.m1 = maxpool()
-        self.c2 = conv(128)
-        self.m2 = maxpool()
-        self.conv_params['stride'] = 2
-        self.c3 = conv(256)
-        self.c4 = conv(256)
-        self.m3 = maxpool()
-        self.c5 = conv(128)
-        self.conv_params['stride'] = 1
-        self.m4 = maxpool()
-        self.fc1 = fc(512, first=True)
-        self.fc2 = fc(512)
-        self.output = fc(1)
-
-    def forward(self,X):
-        for layer in self.layers[:-3]:
-            X = layer(X)
-
-        X = X.view(-1, self.maxpool_out)
-        for layer in self.layers[-3:]:
-            X = layer(X)
-
-        return X.view(-1)

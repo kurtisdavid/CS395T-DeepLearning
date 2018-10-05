@@ -30,9 +30,9 @@ def train(model, name):
     # training
     model.to(device)
 
-    optim = torch.optim.Adam(model.parameters(), lr = 0.01, betas = (0.9,0.999))
+    optim = torch.optim.Adam(model.parameters(), lr = 0.001, betas = (0.9,0.999))
     loss_metric = nn.L1Loss()
-    n_epochs = 10
+    n_epochs = 50
     iteration = 0
 
     train_losses = []
@@ -43,7 +43,7 @@ def train(model, name):
         epoch_losses = []
         for batch_input, batch_labels in dataloader:
             if iteration % 25 == 0:
-                print(iteration)
+                print(iteration, end = "\r")
 
             # make sure to zero out gradient
             model.train()
@@ -74,6 +74,7 @@ def train(model, name):
 
                 eval_losses.append(np.mean(losses))
                 iterations.append(iteration)
+                print("Iteration", iteration,"\t Train loss:", train_losses[-1], "Val loss:", str(eval_losses[-1]))
 
             iteration += 1
 
@@ -96,7 +97,7 @@ def main():
     if args.model == 'alexnet':
         model = models.AlexNet()
     elif args.model == 'resnet':
-        model = models.ResNet(34, 1)
+        model = models.ResNet(50, 1)
     else:
         raise ValueError("Did not provide a valid model")
 
