@@ -18,7 +18,7 @@ class ResNet(nn.Module):
         self.bottleneck = True if n_layers in [50,101] else False
         self.layers = {}
 
-        in_channels = 1
+        in_channels = 3
         out_channels = 64
         self.conv1 = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size = 7, stride = 2, padding = 3),
@@ -128,7 +128,7 @@ class AlexNet(nn.Module):
 
         # taken from https://github.com/pytorch/vision/blob/master/torchvision/models/alexnet.py
         self.features = nn.Sequential(
-            nn.Conv2d(1, 64, kernel_size=11, stride=4, padding=2),
+            nn.Conv2d(3, 64, kernel_size=11, stride=4, padding=2),
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=3, stride=2),
             nn.Conv2d(64, 192, kernel_size=5, padding=2),
