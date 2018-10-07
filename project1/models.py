@@ -1,4 +1,5 @@
 import torch.nn as nn
+import torchvision.models
 import torch
 import math
 
@@ -110,6 +111,13 @@ class ResNet(nn.Module):
         X = X.view(X.shape[0],-1)
         X = self.output(X)
         return X.view(-1)
+
+def create_pretrained_alexnet(n_classes):
+    model = AlexNet()
+    pretrained = torchvision.models.alexnet(pretrained=True)
+    # fine-tune conv layers, keep fc since we have different dimensions
+    model.features = pretrained.features
+    return model
 
 class AlexNet(nn.Module):
     def __init__(self):

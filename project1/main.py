@@ -40,9 +40,9 @@ def train(model, name):
     # training
     model.to(device)
 
-    optim = torch.optim.Adam(model.parameters(), lr = 0.00001, betas = (0.9,0.999))
+    optim = torch.optim.Adam(model.parameters(), lr = 0.0001, betas = (0.9,0.999))
     loss_metric = nn.L1Loss()
-    n_epochs = 25
+    n_epochs = 51
     iteration = 0
 
     train_losses = []
@@ -51,6 +51,15 @@ def train(model, name):
 
     for e in range(n_epochs):
         epoch_losses = []
+        print("Epoch", e)
+        print("Evaluating train...")
+        inference(model, device, train_eval_dataloader, label_mapping_scaled, loss_metric, train_losses)
+        print("Evaluating test...")
+        inference(model, device, val_dataloader, label_mapping_scaled_v, loss_metric, eval_losses)
+        iterations.append(iteration)
+        print("Iteration", iteration,"\t Train loss:", train_losses[-1], "Val loss:", str(eval_losses[-1]))
+        if e == 50:
+            break
         for batch_input, batch_labels in dataloader:
             if iteration % 25 == 0:
                 print(iteration)
@@ -69,46 +78,28 @@ def train(model, name):
             loss.backward()
             optim.step()
             # evaluation
-            if iteration % 150 == 0:
-                print("Evaluating train...", end = "\r")
-                inference(model, device, train_eval_dataloader, label_mapping_scaled, loss_metric, train_losses)
-                print("Evaluating test...", end = "\r")
-                inference(model, device, val_dataloader, label_mapping_scaled_v, loss_metric, eval_losses)
-                #
-                # model.eval()
-                # print("Evaluating...", end = "\r")
-                # losses = []
-                # with torch.no_grad():
-                #     for batch_input,batch_labels in val_dataloader:
-                #         batch_input = batch_input.to(device)
-                #         batch_labels = label_mapping_scaled_v[batch_labels].to(device)
-                #         res = model(batch_input)
-                #         loss = loss_metric(res, batch_labels)
-                #         losses.append(loss.item())
-                #
-                #     eval_losses.append(np.mean(losses))
-                iterations.append(iteration)
-                print("Iteration", iteration,"\t Train loss:", train_losses[-1], "Val loss:", str(eval_losses[-1]))
-
             iteration += 1
 
-        print("Epoch %d: Training Loss: %0.3f" % (e,np.mean(epoch_losses)))
+        # print("Epoch %d: Training Loss: %0.3f" % (e,np.mean(epoch_losses)))
 
-    torch.save(model, name + ".pt")
-    with open(name + "_train_loss.txt", "wb") as f:
+
+    torch.save(model, name + "2.pt")
+    with open(name + "_train_loss2.txt", "wb") as f:
         pickle.dump(train_losses, f)
 
-    with open(name + "_eval_loss.txt", "wb") as f:
+    with open(name + "_eval_loss2.txt", "wb") as f:
         pickle.dump(eval_losses, f)
 
-    with open(name + "_iterations.txt", "wb") as f:
+    with open(name + "_iterations2.txt", "wb") as f:
         pickle.dump(iterations, f)
 
 def inference(model, device, dataloader, label_mapping, loss_metric, losses):
     model.eval()
     losses_ = []
     with torch.no_grad():
-        for batch_input,batch_labels in dataloader:
+        for i,(batch_input,batch_labels) in enumerate(dataloader):
+            if i % 25 == 0:
+                print("Evaluating " + str(i), end = "\r")
             batch_input = batch_input.to(device)
             batch_labels = label_mapping[batch_labels].to(device)
             res = model(batch_input)
@@ -130,12 +121,15 @@ def main():
         train(model, args.model)
     else:
         if args.model == 'all':
-            model = models.AlexNet()
-            train(model, 'AlexNet')
+            # model = models.AlexNet()
+            # train(model, 'AlexNet')
+            # del model
+            model = models.create_pretrained_alexnet(1)
+            train(model,'AlexNetFinetuned')
             del model
-            model = models.ResNet(34,1)
-            train(model, 'ResNet34')
-            del model
+            # model = models.ResNet(34,1)
+            # train(model, 'ResNet34')
+            # del model
             model = models.ResNet(50,1)
             train(model, 'ResNet50')
             del model
