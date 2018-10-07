@@ -5,6 +5,9 @@ import argparse
 from util import *
 import csv
 from PIL import Image
+# import sys
+# sys.path.append("..")
+import models
 
 import torch
 from torchvision import transforms
@@ -17,7 +20,7 @@ def load(image_path, mean_pixel):
                                          std=[1])])
     img = data_transform(img.convert('RGB'))
     return torch.FloatTensor(img.reshape(1, img.shape[0], img.shape[1], img.shape[2])).cuda()
-    
+
 class Predictor:
     DATASET_TYPE = 'yearbook'
     def __init__(self):
@@ -48,29 +51,25 @@ class Predictor:
         return med_coord
 
     def predict(self, image_path):
-
-
-        #TODO: load model
-
         #TODO: predict model and return result either in geolocation format or yearbook format
         # depending on the dataset you are using
         if self.DATASET_TYPE == 'geolocation':
             img = load(image_path, 0.4774289128851716)
             if self.model is None:
                 self.model = torch.load(path.join('..','model','geoloc.pt'))
+                self.model.eval()
                 self.scale = torch.FloatTensor(np.array([14.326867, 9.71078])).cuda()
                 self.min = torch.FloatTensor(np.array([-4.786422, 41.390225])).cuda()
             output = self.model(img) * self.scale + self.min
-            return output.data
+            return output
             #result = self.streetview_baseline() #for geolocation
         elif self.DATASET_TYPE == 'yearbook':
             img = load(image_path, 0.5089547997389491)
             if self.model is None:
-                self.model = torch.load(path.join('..','model','yearbook.pt'))
-            output = self.model(img) * 108 + 1905
-            return output.data
+                self.model = torch.load(path.join('..','model','ResNet34.pt'))
+                self.model.eval()
+            # rescaling
+            with torch.no_grad():
+                output = self.model(img) * 108 + 1905
+            return output
         return result
-        
-    
-
-
