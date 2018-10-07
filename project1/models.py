@@ -112,13 +112,13 @@ class ResNet(nn.Module):
         return X.view(-1)
 
 class AlexNet(nn.Module):
-    def __init__(self, final_output):
+    def __init__(self, final_output, width=186, height=171):
         super(AlexNet,self).__init__()
         self.conv_params = {'kernel_size': 3, 'stride': 1, 'padding': 1}
         self.maxpool_params = {'kernel_size': 2, 'stride': 1, 'padding': 1, 'dilation': 1}
 
-        self.width = 186
-        self.height = 171
+        self.width = width
+        self.height = height
 
         def conv_size(x, kernel_size, stride=1, padding=0):
             return ((x - kernel_size + 2*padding)/stride + 1 )

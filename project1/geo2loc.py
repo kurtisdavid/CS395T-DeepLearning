@@ -36,24 +36,25 @@ class GeolocationDataset(Dataset):
     def __getitem__(self, idx):
         img_path = os.path.join(self.root_dir, self.imgs[idx])
         img = Image.open(img_path)
+        img = img.convert('RGB')
         if self.transform:
             img = self.transform(img)
         return {'img': img, 'loc': torch.FloatTensor(self.locs[idx])}
 
 mean_pixel = 0.4774289128851716
-transform = transforms.Compose([transforms.Grayscale(),
+transform = transforms.Compose([transforms.RandomHorizontalFlip(),
                                 transforms.ToTensor(),
                                 transforms.Normalize(mean=[mean_pixel], std=[1])])
 dataset = GeolocationDataset('data/geo/geo_train.txt', 'data/geo/train',
                              transform=transform)
-dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
+dataloader = DataLoader(dataset, batch_size=128, shuffle=True)
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-model = VGG(150, 261, 2)
+model = AlexNet(2, 150, 261)
 model.to(device)
-optim = torch.optim.Adam(model.parameters(), lr = 0.01, betas = (0.9,0.999))
+optim = torch.optim.Adam(model.parameters(), lr = 0.0001, betas = (0.9,0.999))
 loss_metric = nn.L1Loss()
-n_epochs = 10
+n_epochs = 25
 iteration = 0
 
 for e in range(n_epochs):
@@ -80,7 +81,7 @@ for e in range(n_epochs):
         loss.backward()
         optim.step()
         iteration += 1
-    torch.save(model, str(e) + '-1.pt')
+    torch.save(model, str(e) + '-alexnet.pt')
 
     print("Epoch %d: Training Loss: %0.3f" % (e,np.mean(epoch_losses)))
 
