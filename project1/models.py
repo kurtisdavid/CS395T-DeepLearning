@@ -1,3 +1,6 @@
+import math
+import torch.nn as nn
+
 class ResNet(nn.Module):
     def __init__(self, n_layers, final_output, bottleneck = False):
         super(ResNet,self).__init__()
@@ -41,7 +44,7 @@ class ResNet(nn.Module):
         # global average pooling
         self.global_avg = nn.AvgPool2d(kernel_size = (self.width,self.height), stride = 1)
         # fully connected to final
-        self.output = nn.Linear(in_channels,1)
+        self.output = nn.Linear(in_channels, final_output)
 
     def create_block(self, in_channels, out_channels, block_num, bottleneck):
         block = nn.Sequential(
@@ -93,7 +96,7 @@ class ResNet(nn.Module):
 
 
 class AlexNet(nn.Module):
-    def __init__(self):
+    def __init__(self, final_output):
         super(AlexNet,self).__init__()
         self.conv_params = {'kernel_size': 3, 'stride': 1, 'padding': 1}
         self.maxpool_params = {'kernel_size': 2, 'stride': 1, 'padding': 1, 'dilation': 1}
@@ -142,7 +145,7 @@ class AlexNet(nn.Module):
             nn.Dropout(),
             nn.Linear(4096, 4096),
             nn.ReLU(inplace=True),
-            nn.Linear(4096, 1),
+            nn.Linear(4096, final_output),
         )
 
     def forward(self,x):
@@ -153,7 +156,7 @@ class AlexNet(nn.Module):
 
 
 class VGG(nn.Module):
-    def __init__(self):
+    def __init__(self, width, height, final_output):
         super(VGG,self).__init__()
         self.conv_params = {'kernel_size': 3, 'stride': 1, 'padding': 1}
         self.maxpool_params = {'kernel_size': 2, 'stride': 2, 'padding': 1, 'dilation': 1}
@@ -163,8 +166,8 @@ class VGG(nn.Module):
         self.in_channels = 1
         self.maxpool_out = -1
         self.in_features = -1
-        self.width = 186
-        self.height = 171
+        self.width = width
+        self.height = height
 
         # this assumes you can mix conv and maxpools, with all fc at the end
         def conv(out_channels):
@@ -220,7 +223,7 @@ class VGG(nn.Module):
         self.m4 = maxpool()
         self.fc1 = fc(512, first=True)
         self.fc2 = fc(512)
-        self.output = fc(1)
+        self.output = fc(final_output)
 
     def forward(self,X):
         for layer in self.layers[:-3]:

@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 from torchvision import transforms, datasets
 
-def train(model, name):
+def train(model, name, save, n_epochs):
     # image pre-processing
     data_transform = transforms.Compose([transforms.Grayscale(),
                                      transforms.ToTensor(),
@@ -24,7 +24,7 @@ def train(model, name):
     label_mapping_v = torch.FloatTensor([float(clazz) for clazz in valImages.classes])
     label_mapping_scaled_v = (label_mapping_v - label_mapping.min())/(label_mapping.max() - label_mapping.min())
 
-    val_dataloader = torch.utils.data.DataLoader(valImages, batch_size = 128, shuffle=False)
+    val_dataloader = torch.utils.data.DataLoader(valImages, batch_size = 64, shuffle=False)
 
 
     # training
@@ -32,7 +32,6 @@ def train(model, name):
 
     optim = torch.optim.Adam(model.parameters(), lr = 0.01, betas = (0.9,0.999))
     loss_metric = nn.L1Loss()
-    n_epochs = 10
     iteration = 0
 
     train_losses = []
@@ -54,6 +53,8 @@ def train(model, name):
             batch_labels = label_mapping_scaled[batch_labels].to(device)
 
             loss = loss_metric(model(batch_input), batch_labels)
+            del batch_input
+            del batch_labels
             epoch_losses.append(loss.data)
 
             loss.backward()
@@ -62,6 +63,7 @@ def train(model, name):
             # evaluation
             if iteration % 50 == 0:
                 train_losses.append(loss.data)
+                del loss
 
                 model.eval()
                 losses = []
@@ -69,8 +71,12 @@ def train(model, name):
                     batch_input = batch_input.to(device)
                     batch_labels = label_mapping_scaled_v[batch_labels].to(device)
                     res = model(batch_input)
+                    del batch_input
                     loss = loss_metric(res, batch_labels)
+                    del batch_labels
                     losses.append(loss.data)
+                    del res
+                    del loss
 
                 eval_losses.append(np.mean(losses))
                 iterations.append(iteration)
@@ -88,19 +94,27 @@ def train(model, name):
     with open(name + "_iterations.txt", "wb") as f:
         pickle.dump(iterations, f)
 
+    torch.save(model, save)
+
 def main():
     args = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     args.add_argument("--model", help="The model to train on")
+    args.add_argument("--save", type=str, default="model.pt", help="File to save trained model to (default: model.pt")
+    args.add_argument("--num-epochs", type=int, default=10, help="Number of epochs to train (default: 10)")
     args = args.parse_args()
 
     if args.model == 'alexnet':
-        model = models.AlexNet()
-    elif args.model == 'resnet':
+        model = models.AlexNet(1)
+    elif args.model == 'resnet18':
+        model = models.ResNet(18, 1)
+    elif args.model == 'resnet34':
         model = models.ResNet(34, 1)
+    elif args.model == 'vgg':
+        model = models.VGG(186, 171, 1)
     else:
         raise ValueError("Did not provide a valid model")
 
-    train(model, args.model)
+    train(model, args.model, args.save, args.num_epochs)
 
 if __name__ == "__main__":
     main()
