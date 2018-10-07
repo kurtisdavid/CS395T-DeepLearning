@@ -11,8 +11,7 @@ YEARBOOK_VALID_PATH = path.join(YEARBOOK_PATH, 'valid')
 YEARBOOK_TEST_PATH = path.join(YEARBOOK_PATH, 'test')
 YEARBOOK_TEST_LABEL_PATH = path.join(SRC_PATH, '..', 'output', 'yearbook_test_label.txt')
 STREETVIEW_PATH = path.join(DATA_PATH, 'geo')
-#STREETVIEW_VALID_PATH = path.join(STREETVIEW_PATH, 'valid')
-STREETVIEW_VALID_PATH = path.join(STREETVIEW_PATH, 'train')
+STREETVIEW_VALID_PATH = path.join(STREETVIEW_PATH, 'valid')
 STREETVIEW_TEST_PATH = path.join(STREETVIEW_PATH, 'test')
 STREETVIEW_TEST_LABEL_PATH = path.join(SRC_PATH, '..', 'output', 'geo_test_label.txt')
 
@@ -66,7 +65,7 @@ def evaluateYearbook(Predictor):
 
 # Evaluate L1 distance on valid data for geolocation dataset
 def evaluateStreetview(Predictor):
-    test_list = listStreetView(True, False)#listStreetView(False, True)
+    test_list = listStreetView(False, True)
     predictor = Predictor()
     predictor.DATASET_TYPE = 'geolocation'
 
