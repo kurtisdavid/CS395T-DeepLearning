@@ -54,7 +54,7 @@ class ResNet(nn.Module):
         # global average pooling
         self.global_avg = nn.AvgPool2d(kernel_size = (self.width,self.height), stride = 1)
         # fully connected to final
-        self.output = nn.Linear(in_channels,1)
+        self.output = nn.Linear(in_channels, final_output)
 
     def create_block(self, in_channels, out_channels, block_num):
         if self.bottleneck:
@@ -120,13 +120,13 @@ def create_pretrained_alexnet(n_classes):
     return model
 
 class AlexNet(nn.Module):
-    def __init__(self):
+    def __init__(self, final_output, width=186, height=171):
         super(AlexNet,self).__init__()
         self.conv_params = {'kernel_size': 3, 'stride': 1, 'padding': 1}
         self.maxpool_params = {'kernel_size': 2, 'stride': 1, 'padding': 1, 'dilation': 1}
 
-        self.width = 186
-        self.height = 171
+        self.width = width
+        self.height = height
 
         def conv_size(x, kernel_size, stride=1, padding=0):
             return ((x - kernel_size + 2*padding)/stride + 1 )
@@ -169,7 +169,7 @@ class AlexNet(nn.Module):
             nn.Dropout(),
             nn.Linear(4096, 4096),
             nn.ReLU(inplace=True),
-            nn.Linear(4096, 1),
+            nn.Linear(4096, final_output),
         )
 
     def forward(self,x):
@@ -177,3 +177,84 @@ class AlexNet(nn.Module):
         x = x.view(x.size(0), 256 * self.width * self.height)
         x = self.classifier(x)
         return x.view(-1)
+
+
+class VGG(nn.Module):
+    def __init__(self, width, height, final_output):
+        super(VGG,self).__init__()
+        self.conv_params = {'kernel_size': 3, 'stride': 1, 'padding': 1}
+        self.maxpool_params = {'kernel_size': 2, 'stride': 2, 'padding': 1, 'dilation': 1}
+
+        self.layers = []
+
+        self.in_channels = 1
+        self.maxpool_out = -1
+        self.in_features = -1
+        self.width = width
+        self.height = height
+
+        # this assumes you can mix conv and maxpools, with all fc at the end
+        def conv(out_channels):
+            self.layers.append(nn.Sequential(
+                nn.Conv2d(self.in_channels, out_channels, **self.conv_params),
+                nn.BatchNorm2d(num_features = out_channels),
+                nn.LeakyReLU(0.2)
+            ))
+            self.in_channels = out_channels
+            # https://www.quora.com/How-can-I-calculate-the-size-of-output-of-convolutional-layer
+            self.width = math.floor((self.width - self.conv_params['kernel_size'] + 2*self.conv_params['padding'])/self.conv_params['stride'] + 1 )
+            self.height = math.floor((self.height - self.conv_params['kernel_size'] + 2*self.conv_params['padding'])/self.conv_params['stride'] + 1 )
+            # print("applied conv: image is now ", self.width, " by ", self.height, " by ", self.in_channels)
+            return self.layers[-1]
+
+        def maxpool_size(x):
+            kernel_size = self.maxpool_params['kernel_size']
+            padding = self.maxpool_params['padding']
+            stride = self.maxpool_params['stride']
+            dilation = self.maxpool_params['dilation']
+            return math.floor((x + 2 * padding - dilation * (kernel_size - 1) - 1) / stride  + 1)
+
+        def maxpool():
+            self.layers.append(nn.MaxPool2d(**self.maxpool_params))
+            self.width = maxpool_size(self.width)
+            self.height = maxpool_size(self.height)
+
+            self.maxpool_out = self.width * self.height * self.in_channels
+            print("applied maxpool: image is now ", self.width, " by ", self.height, " by ", self.in_channels)
+            return self.layers[-1]
+
+        def fc(out_features, first=False):
+            in_features = self.maxpool_out if first else self.in_features
+
+            self.layers.append(nn.Sequential(
+                nn.Linear(in_features, out_features),
+                nn.Sigmoid()
+            ))
+            self.in_features = out_features
+            return self.layers[-1]
+
+        # need them to be instance variables to be found by vgg.parameters() method
+        self.c1 = conv(64)
+        self.m1 = maxpool()
+        self.c2 = conv(128)
+        self.m2 = maxpool()
+        self.conv_params['stride'] = 2
+        self.c3 = conv(256)
+        self.c4 = conv(256)
+        self.m3 = maxpool()
+        self.c5 = conv(128)
+        self.conv_params['stride'] = 1
+        self.m4 = maxpool()
+        self.fc1 = fc(512, first=True)
+        self.fc2 = fc(512)
+        self.output = fc(final_output)
+
+    def forward(self,X):
+        for layer in self.layers[:-3]:
+            X = layer(X)
+
+        X = X.view(-1, self.maxpool_out)
+        for layer in self.layers[-3:]:
+            X = layer(X)
+
+        return X.view(-1)

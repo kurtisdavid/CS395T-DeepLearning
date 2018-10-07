@@ -73,6 +73,8 @@ def train(model, name):
             batch_labels = label_mapping_scaled[batch_labels].to(device)
 
             loss = loss_metric(model(batch_input), batch_labels)
+            del batch_input
+            del batch_labels
             epoch_losses.append(loss.item())
 
             loss.backward()
@@ -107,14 +109,19 @@ def inference(model, device, dataloader, label_mapping, loss_metric, losses):
             losses_.append(loss.item())
     losses.append(np.mean(losses_))
 
-
 def main():
     args = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     args.add_argument("--model", help="The model to train on")
     args = args.parse_args()
 
     if args.model == 'alexnet':
-        model = models.AlexNet()
+        model = models.AlexNet(1)
+        train(model, args.model)
+    elif args.model == 'resnet18':
+        model = models.ResNet(18, 1)
+        train(model, args.model)
+    elif args.model == 'resnet34':
+        model = models.ResNet(34, 1)
         train(model, args.model)
     elif args.model == 'resnet':
         model = models.ResNet(101, 1)
@@ -137,6 +144,7 @@ def main():
             train(model, 'ResNet101')
             del model
         raise ValueError("Did not provide a valid model")
+
 
 if __name__ == "__main__":
     main()
