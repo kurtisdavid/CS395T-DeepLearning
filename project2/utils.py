@@ -17,3 +17,20 @@ def TVLoss(model, layer_mask):
                         tv += torch.sqrt((y[i + 1][j] - y[i][j])**2 + (y[i][j + 1] - y[i][j])**2)
     
     return tv
+
+def TVLossMat(model, layer_mask):
+    conv2D_idxs = [0, 3, 6, 8, 10]
+
+    features = list(model.features.children())
+    tv = 0
+
+    for layer in layer_mask:
+        weights = list(features[conv2D_idxs[layer]].parameters())[0]
+        size = weights.size()
+
+        x = torch.zeros_like(weights)
+        y = torch.zeros_like(weights)
+        x[:, :, :-1, :] = (weights[:, :, :-1, :] - weights[:, :, 1:, :]) ** 2
+        y[:, :, :, :-1] = (weights[:, :, :, :-1] - weights[:, :, :, 1:]) ** 2
+        tv += torch.sum(torch.sqrt(x + y))
+    return tv
