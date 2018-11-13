@@ -142,14 +142,14 @@ def train_model(model, trainloader, testloader, args, tv_fn, device):
     for e in range(EPOCHS):
         # validation
         val_acc, val_loss = eval_model(model,testloader,criterion,device)
-        print("Epoch", "{:3d}".format(e), "| Test Acc:", "{:8.4f}".format(val_acc), "| Test Loss:", "{:8.4f}".format(val_loss))
+        print("Epoch", "{:3d}".format(e), "| Test Acc:", "{:8.4f}".format(val_acc), "| Test Loss:", "{:8.4f}".format(val_loss), end=" ")
         val_accs.append(val_acc)
         val_losses.append(val_losses)
          # visualize weights
         if args.weights:
             visualizeWeights(model, 'WithTV_Epoch' + str(e))
         with torch.no_grad():
-            init = tv_fn(model,True).item()
+            init = tv_fn(model).item()
         # training
         model.train()
 
@@ -171,7 +171,7 @@ def train_model(model, trainloader, testloader, args, tv_fn, device):
             # classification loss
             class_loss = criterion(batch_output,batch_labels)
             # total variation loss
-            TV_loss = tv_fn(model, False)
+            TV_loss = tv_fn(model)
             if args.tv:
                 loss = class_loss + lambda_TV*TV_loss
             else:
@@ -219,10 +219,10 @@ def main():
 
     if args.model == 'alexnet':
         model = AlexNet(10).to(device)
-        tv_fn = lambda model,print_: TVLossMat(model, print_, args.mask)
-    elif args.model == 'resnet18':
-        model = models.resnet18().to(device)
-        tv_fn = lambda model,print_: TVLossMatResNet(model, print_, args.mask)
+        tv_fn = lambda model: TVLossMat(model, args.mask)
+    elif args.model == 'resnet20':
+        model = resnet20().to(device)
+        tv_fn = lambda model: TVLossMatResNet(model, args.mask)
     else:
         raise Exception('Given model is invalid.')
 

@@ -87,42 +87,38 @@ def TVLossMat(model, print_=False, layer_mask=None):
 
 def TVLossMatResNet(model, layer_mask=None):
 
-    blocks = [model.conv1, model.layer1,model.layer2,model.layer3,model.layer4]
+    blocks = [model.conv1, model.layer1, model.layer2, model.layer3]
     if layer_mask is None:
         layer_mask = [i for i in range(len(blocks))]
 
     # get tv values for convolutions in resnet block
     def TVBlock(block):
         block = list(block.children())
-        pixels = 0
         tv = 0
         weights = list(block[0].parameters())[0]
         size = weights.size()
-        pixels += size[0] * size[1] * (size[2] - 1) * (size[3] - 1)
-        tv += TVMat(weights)
+        pixels = size[0] * size[1] * (size[2] - 1) * (size[3] - 1)
+        tv += TVMat(weights)/pixels
 
         weights = list(block[3].parameters())[0]
         size = weights.size()
-        pixels += size[0] * size[1] * (size[2] - 1) * (size[3] - 1)
-        tv += TVMat(weights)
+        pixels = size[0] * size[1] * (size[2] - 1) * (size[3] - 1)
+        tv += TVMat(weights)/pixels
 
-        return tv, pixels
+        return tv
 
     tv = 0
-    pixels = 0
     for layer in layer_mask:
         if layer == 0:
             weights = list(blocks[layer].parameters())[0]
             size = weights.size()
-            pixels += size[0] * size[1] * (size[2] - 1) * (size[3] - 1)
-            tv += TVMat(weights)
+            pixels = size[0] * size[1] * (size[2] - 1) * (size[3] - 1)
+            tv += TVMat(weights)/pixels
         else:
             basic_blocks = list(blocks[layer].children())
             for bl in basic_blocks:
-                curr_tv, curr_pixels = TVBlock(bl)
-                pixels += curr_pixels
-                tv += curr_tv
-    return tv/pixels
+                tv += TVBlock(bl)
+    return tv/len(layer_mask)
 
 def TVMat(weights):
     x = torch.zeros_like(weights)
