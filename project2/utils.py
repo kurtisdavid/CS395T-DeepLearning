@@ -49,7 +49,7 @@ def TVLossMat(model, layer_mask=None):
 #     print("tv", tv)
 #     print("pixels", pixels)
     return tv / pixels
-    
+
 def TVLossMatResNet(model, layer_mask=None):
 
     blocks = [model.conv1, model.layer1,model.layer2,model.layer3,model.layer4]
