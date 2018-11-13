@@ -170,13 +170,21 @@ def train_model(model, trainloader, testloader, args, tv_fn, device):
 
             # classification loss
             class_loss = criterion(batch_output,batch_labels)
-            loss = class_loss
             # total variation loss
             TV_loss = tv_fn(model, False)
             if args.tv:
-                loss += lambda_TV*TV_loss
+                loss = class_loss + lambda_TV*TV_loss
+            else:
+                loss = class_loss
             loss.backward()
+
+            # check for gradient problems
+            # check_grad(model)
+
+            # torch.nn.utils.clip_grad_norm_(model.parameters(),0.25)
             optim.step()
+
+
             class_losses.append(class_loss.item())
             TV_losses.append(TV_loss.item()*lambda_TV)
 
@@ -186,6 +194,7 @@ def train_model(model, trainloader, testloader, args, tv_fn, device):
 
 
     results = {}
+    # print(val_accs)
     results['val_accs'] = val_accs
     results['val_losses'] = val_losses
     results['losses'] = losses
