@@ -25,7 +25,7 @@ def TVLoss(model, layer_mask=None):
 
     return tv / pixels
 
-def TVLossMat(model, layer_mask=None):
+def TVLossMat(model, print_=False, layer_mask=None):
     conv2D_idxs = [0, 3, 6, 8, 10]
     if layer_mask is None:
         layer_mask = [i for i in range(len(conv2D_idxs))]
@@ -44,10 +44,17 @@ def TVLossMat(model, layer_mask=None):
         y = torch.zeros_like(weights)
         x[:, :, :-1, :-1] = (weights[:, :, 1:, :-1] - weights[:, :, :-1, :-1]) ** 2
         y[:, :, :-1, :-1] = (weights[:, :, :-1, 1:] - weights[:, :, :-1, :-1]) ** 2
-        tv += torch.sum(torch.sqrt(x + y))
-
-#     print("tv", tv)
-#     print("pixels", pixels)
+        huh = torch.sqrt(x + y)
+        ok = torch.sum(huh)
+        tv += ok
+        if print_:
+            print("sqrt",huh)
+            print("ok",ok)
+            print("tv", tv)
+            print("pixels", pixels)
+    if print_:
+        print("final_tv", tv)
+        print("final_pixels", pixels)
     return tv / pixels
 
 def TVLossMatResNet(model, layer_mask=None):

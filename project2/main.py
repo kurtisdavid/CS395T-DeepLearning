@@ -34,7 +34,7 @@ def get_args():
     parser.add_argument('--eval_bs', type=int, default=256, help='batch size')
     parser.add_argument('--model', type=str, default='alexnet', help='model to test')
     parser.add_argument('--mask', type=list, default=None, help='layer mask for TV')
-    parser.add_argument('--lambda_TV', type=float, default=1, help='regularization weight')
+    parser.add_argument('--lambda_TV', type=float, default=10, help='regularization weight')
     parser.add_argument('--model_file', type=str, default='./model.pt', help='where to save trained model')
     parser.add_argument('--log_file',
                         type=str,
@@ -142,14 +142,14 @@ def train_model(model, trainloader, testloader, args, tv_fn, device):
     for e in range(EPOCHS):
         # validation
         val_acc, val_loss = eval_model(model,testloader,criterion,device)
-        print("Epoch", "{:3d}".format(e), "| Test Acc:", "{:8.4f}".format(val_acc), "| Test Loss:", "{:8.4f}".format(val_loss), end = "")
+        print("Epoch", "{:3d}".format(e), "| Test Acc:", "{:8.4f}".format(val_acc), "| Test Loss:", "{:8.4f}".format(val_loss))
         val_accs.append(val_acc)
         val_losses.append(val_losses)
          # visualize weights
         if args.weights:
             visualizeWeights(model, 'WithTV_Epoch' + str(e))
         with torch.no_grad():
-            init = tv_fn(model).item()
+            init = tv_fn(model,True).item()
         # training
         model.train()
 
@@ -172,7 +172,7 @@ def train_model(model, trainloader, testloader, args, tv_fn, device):
             class_loss = criterion(batch_output,batch_labels)
             loss = class_loss
             # total variation loss
-            TV_loss = tv_fn(model)
+            TV_loss = tv_fn(model, False)
             if args.tv:
                 loss += lambda_TV*TV_loss
             loss.backward()
@@ -210,10 +210,10 @@ def main():
 
     if args.model == 'alexnet':
         model = AlexNet(10).to(device)
-        tv_fn = lambda model: TVLossMat(model, args.mask)
+        tv_fn = lambda model,print_: TVLossMat(model, print_, args.mask)
     elif args.model == 'resnet18':
         model = models.resnet18().to(device)
-        tv_fn = lambda model: TVLossMatResNet(model, args.mask)
+        tv_fn = lambda model,print_: TVLossMatResNet(model, print_, args.mask)
     else:
         raise Exception('Given model is invalid.')
 
