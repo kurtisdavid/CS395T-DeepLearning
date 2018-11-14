@@ -34,7 +34,8 @@ def get_args():
     parser.add_argument('--eval_bs', type=int, default=256, help='batch size')
     parser.add_argument('--model', type=str, default='alexnet', help='model to test')
     parser.add_argument('--mask', type=list, default=None, help='layer mask for TV')
-    parser.add_argument('--lambda_TV', type=float, default=10, help='regularization weight')
+    parser.add_argument('--lambda_reg', type=float, default=1e-4, help='l1/l2 regularization weight')
+    parser.add_argument('--lambda_TV', type=float, default=1, help='tv regularization weight')
     parser.add_argument('--model_file', type=str, default='./model.pt', help='where to save trained model')
     parser.add_argument('--log_file',
                         type=str,
@@ -45,12 +46,12 @@ def get_args():
                         type=str,
                         default=None,
                         help='use to start with same initial weights',
-                        required='-tv' in sys.argv)
+                        required='-tv' in sys.argv or '-l1' in sys.argv or '-l2' in sys.argv)
     parser.add_argument('--save_model_init',
                         type=str,
                         default='./default.pt',
                         help='save init for a given trial name string',
-                        required='-tv' not in sys.argv)
+                        required='-tv' not in sys.argv and '-l1' not in sys.argv and '-l2' not in sys.argv)
 
     args = parser.parse_args()
     return args
@@ -128,28 +129,42 @@ def train_model(model, trainloader, testloader, args, tv_fn, device):
     TVs = []
     val_losses = []
     val_accs = []
+    layer_tvs = [[] for i in range(len(args.mask))]
 
     EPOCHS = args.epochs
     lr = args.lr
     lambda_TV = args.lambda_TV
+    lambda_reg = args.lambda_reg
     criterion = nn.CrossEntropyLoss()
     if args.optim=='adam':
-        optim = torch.optim.Adam(model.parameters(), lr=lr)
+        optim = torch.optim.Adam(model.parameters(),
+                                 lr=lr,
+                                 weight_decay=lambda_reg if (args.l1 or args.l2) else 0)
     elif args.optim=='SGD':
-        optim = torch.optim.SGD(model.parameters(), lr=lr)
+        optim = torch.optim.SGD(model.parameters(),
+                                lr=lr,
+                                momentum=0.9,
+                                weight_decay=lambda_reg if (args.l1 or args.l2) else 0)
     steps = [75,150]
 
     for e in range(EPOCHS):
         # validation
         val_acc, val_loss = eval_model(model,testloader,criterion,device)
-        print("Epoch", "{:3d}".format(e), "| Test Acc:", "{:8.4f}".format(val_acc), "| Test Loss:", "{:8.4f}".format(val_loss), end=" ")
+        print("Epoch", "{:3d}".format(e), "| Test Acc:", "{:8.4f}".format(val_acc), "| Test Loss:", "{:8.4f}".format(val_loss))
         val_accs.append(val_acc)
         val_losses.append(val_losses)
          # visualize weights
         if args.weights:
             visualizeWeights(model, 'WithTV_Epoch' + str(e))
         with torch.no_grad():
-            init = tv_fn(model).item()
+            init, layer_tv = tv_fn(model)
+            TVs.append(init.item())
+            assert len(layer_tv) == len(layer_tvs)
+            for i in range(len(layer_tvs)):
+                try:
+                    layer_tvs[i].append(layer_tv[i].item())
+                except:
+                    layer_tvs[i].append(layer_tv[i])
         # training
         model.train()
 
@@ -159,7 +174,10 @@ def train_model(model, trainloader, testloader, args, tv_fn, device):
         # annealing learning rate
         if args.optim=='SGD' and e in steps:
             lr /= 10
-            optim = torch.optim.SGD(model.parameters(), lr)
+            optim = torch.optim.SGD(model.parameters(),
+                                    lr=lr,
+                                    momentum=0.9,
+                                    weight_decay=lambda_reg if (args.l1 or args.l2) else 0)
 
         # go through batches
         for batch_input, batch_labels in trainloader:
@@ -171,17 +189,14 @@ def train_model(model, trainloader, testloader, args, tv_fn, device):
             # classification loss
             class_loss = criterion(batch_output,batch_labels)
             # total variation loss
-            TV_loss = tv_fn(model)
+            TV_loss, _ = tv_fn(model)
             if args.tv:
                 loss = class_loss + lambda_TV*TV_loss
             else:
                 loss = class_loss
             loss.backward()
-
             # check for gradient problems
             # check_grad(model)
-
-            # torch.nn.utils.clip_grad_norm_(model.parameters(),0.25)
             optim.step()
 
 
@@ -189,12 +204,12 @@ def train_model(model, trainloader, testloader, args, tv_fn, device):
             TV_losses.append(TV_loss.item()*lambda_TV)
 
         losses.append(np.mean(class_losses))
-        TVs.append(init)
         print(" | Train loss:", "{:8.4f}".format(losses[-1]), "| Init TV:", "{:8.4f}".format(init), "| TV loss:", "{:8.4f}".format(np.mean(TV_losses)))
 
 
     results = {}
     # print(val_accs)
+    results['layer_TVs'] = layer_tvs
     results['val_accs'] = val_accs
     results['val_losses'] = val_losses
     results['losses'] = losses
@@ -209,6 +224,12 @@ def train_model(model, trainloader, testloader, args, tv_fn, device):
 
 def main():
     args = get_args()
+    # up to 1 type of regularization allowed
+    assert (args.l1 and not args.l2 and not args.tv) or \
+           (args.l2 and not args.l1 and not args.tv) or \
+           (args.tv and not args.l1 and not args.l2) or \
+           (not args.tv and not args.l1 and not args.l2)
+
     # set seeds
     random.seed(args.seed)
     np.random.seed(args.seed)
@@ -219,8 +240,12 @@ def main():
 
     if args.model == 'alexnet':
         model = AlexNet(10).to(device)
+        if args.mask == None:
+            args.mask = [0,1,2,3,4]
         tv_fn = lambda model: TVLossMat(model, args.mask)
     elif args.model == 'resnet20':
+        if args.mask == None:
+            args.mask = [0,1,2,3]
         model = resnet20().to(device)
         tv_fn = lambda model: TVLossMatResNet(model, args.mask)
     else:

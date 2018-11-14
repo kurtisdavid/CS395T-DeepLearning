@@ -60,19 +60,16 @@ def TVLossMat(model, print_=False, layer_mask=None):
         layer_mask = [i for i in range(len(conv2D_idxs))]
     features = list(model.features.children())
     tv = 0
-
+    tvs = []
     for layer in layer_mask:
         weights = list(features[conv2D_idxs[layer]].parameters())[0]
         size = weights.size()
 #         print("size: ", size)
 
         pixels = size[0] * size[1] * (size[2] - 1) * (size[3] - 1)
-
-        x = torch.zeros_like(weights)
-        y = torch.zeros_like(weights)
-        x[:, :, :-1, :-1] = (weights[:, :, 1:, :-1] - weights[:, :, :-1, :-1]) ** 2
-        y[:, :, :-1, :-1] = (weights[:, :, :-1, 1:] - weights[:, :, :-1, :-1]) ** 2
-        tv += torch.sum(torch.sqrt(x+y+1e-6))/pixels # prevent derivative from being 1/0
+        curr = TVMat(weights)/pixels
+        tvs.append(curr.item())
+        tv += curr
         if print_:
             pass
             # print("sum", yeet)
@@ -83,7 +80,7 @@ def TVLossMat(model, print_=False, layer_mask=None):
     # if print_:
     #     print("final_tv", tv)
     #     print("final_pixels", pixels)
-    return tv/len(layer_mask)
+    return tv/len(layer_mask), tvs
 
 def TVLossMatResNet(model, layer_mask=None):
 
@@ -105,20 +102,27 @@ def TVLossMatResNet(model, layer_mask=None):
         pixels = size[0] * size[1] * (size[2] - 1) * (size[3] - 1)
         tv += TVMat(weights)/pixels
 
-        return tv
+        return tv/2
 
     tv = 0
+    tvs = []
     for layer in layer_mask:
         if layer == 0:
             weights = list(blocks[layer].parameters())[0]
             size = weights.size()
             pixels = size[0] * size[1] * (size[2] - 1) * (size[3] - 1)
-            tv += TVMat(weights)/pixels
+            curr = TVMat(weights)/pixels
+            tv += curr
+            tvs.append(curr.item())
         else:
             basic_blocks = list(blocks[layer].children())
+            total = 0
             for bl in basic_blocks:
-                tv += TVBlock(bl)
-    return tv/len(layer_mask)
+                curr = TVBlock(bl)
+                tv += curr
+                total += curr
+            tvs.append(total/len(basic_blocks))
+    return tv/len(layer_mask), tvs
 
 def TVMat(weights):
     x = torch.zeros_like(weights)

@@ -1,7 +1,12 @@
 #!/bin/bash
 # AlexNet + SGD Experiments
-python3 main.py --optim SGD --lr .1 --epochs 200 --model_file ./trained_models/alexnet_sgd.pt --log_file ./results/alexnet_sgd.pck --save_model_init ./init_models/alexnet_sgd.state
-python3 main.py --optim SGD --lr .1 --epochs 200 -tv --model_file ./trained_models/alexnet_sgd_tv.pt --log_file ./results/alexnet_sgd_tv.pck --load_model_init ./init_models/alexnet_sgd.state
+# python3 main.py --optim SGD --lr .1 --epochs 1 --model_file ./trained_models/alexnet_sgd.pt --log_file ./results/alexnet_sgd.pck --save_model_init ./init_models/alexnet_sgd.state
+# python3 main.py --optim SGD --lr .1 --epochs 100 -tv --model_file ./trained_models/alexnet_sgd_tv.pt --log_file ./results/alexnet_sgd_tv.pck --load_model_init ./init_models/alexnet_sgd.state
 # AlexNet + Adam Experiments
-python3 main.py --optim adam --lr .0005 --epochs 200 --model_file ./trained_models/alexnet_adam.pt --log_file ./results/alexnet_adam.pck --save_model_init ./init_models/alexnet_adam.state
-python3 main.py --optim adam --lr .0005 --epochs 200 -tv --model_file ./trained_models/alexnet_adam_tv.pt --log_file ./results/alexnet_adam_tv.pck --load_model_init ./init_models/alexnet_adam.state
+# python3 main.py --optim adam --lr .0005 --epochs 100 --model_file ./trained_models/alexnet_adam.pt --log_file ./results/alexnet_adam.pck --save_model_init ./init_models/alexnet_adam.state
+# python3 main.py --optim adam --lr .0005 --epochs 100 -tv --model_file ./trained_models/alexnet_adam_tv.pt --log_file ./results/alexnet_adam_tv.pck --load_model_init ./init_models/alexnet_adam.state
+# ResNet20 + SGD + L1/L2 Experiments
+python3 main.py --optim SGD --lr .1 --epochs 1 --model resnet20 --model_file ./trained_models/resnet20_sgd_mu.pt --log_file ./results/resnet20_sgd_mu.pck --save_model_init ./init_models/resnet20_sgd_mu.state
+python3 main.py --optim SGD --lr .1 --lambda_TV 1 --epochs 100 -tv --model resnet20 --model_file ./trained_models/resnet20_sgd_mu_tv.pt --log_file ./results/resnet20_sgd_mu_tv.pck --load_model_init ./init_models/resnet20_sgd_mu.state
+python3 main.py --optim SGD --lr .1 --lambda_reg 1e-4 --epochs 100 -l1 --model resnet20 --model_file ./trained_models/resnet20_sgd_mu_l1.pt --log_file ./results/resnet20_sgd_mu_l1.pck --load_model_init ./init_models/resnet20_sgd_mu.state
+python3 main.py --optim SGD --lr .1 --lambda_reg 1e-4 --epochs 100 -l2 --model resnet20 --model_file ./trained_models/resnet20_sgd_mu_l2.pt --log_file ./results/resnet20_sgd_mu_l2.pck --load_model_init ./init_models/resnet20_sgd_mu.state
