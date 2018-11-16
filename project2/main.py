@@ -33,7 +33,7 @@ def get_args():
     parser.add_argument('--train_bs', type=int, default=128, help='batch size')
     parser.add_argument('--eval_bs', type=int, default=256, help='batch size')
     parser.add_argument('--model', type=str, default='alexnet', help='model to test')
-    parser.add_argument('--mask', type=list, default=None, help='layer mask for TV')
+    parser.add_argument('--mask', nargs='+', type=int, default=None, help='layer mask for TV')
     parser.add_argument('--lambda_reg', type=float, default=1e-4, help='l1/l2 regularization weight')
     parser.add_argument('--lambda_TV', type=float, default=1, help='tv regularization weight')
     parser.add_argument('--model_file', type=str, default='./model.pt', help='where to save trained model')
@@ -62,6 +62,7 @@ setup dataloaders for training and testing sets for cifar10
 def setup_data(args):
     transform_train = transforms.Compose([
         transforms.RandomHorizontalFlip(),
+        transforms.RandomCrop(32,4),
         transforms.ToTensor(),
         transforms.Normalize((0.5071, 0.4865, 0.4409), (0.2673, 0.2564, 0.2762)),
     ])
@@ -135,22 +136,24 @@ def train_model(model, trainloader, testloader, args, tv_fn, device):
     lr = args.lr
     lambda_TV = args.lambda_TV
     lambda_reg = args.lambda_reg
+    if not args.l1 and not args.l2:
+        lambda_reg = 0
     criterion = nn.CrossEntropyLoss()
     if args.optim=='adam':
         optim = torch.optim.Adam(model.parameters(),
                                  lr=lr,
-                                 weight_decay=lambda_reg if (args.l1 or args.l2) else 0)
+                                 weight_decay=lambda_reg)
     elif args.optim=='SGD':
         optim = torch.optim.SGD(model.parameters(),
                                 lr=lr,
                                 momentum=0.9,
-                                weight_decay=lambda_reg if (args.l1 or args.l2) else 0)
-    steps = [75,150]
+                                weight_decay=lambda_reg)
+    steps = [75,120]
 
     for e in range(EPOCHS):
         # validation
         val_acc, val_loss = eval_model(model,testloader,criterion,device)
-        print("Epoch", "{:3d}".format(e), "| Test Acc:", "{:8.4f}".format(val_acc), "| Test Loss:", "{:8.4f}".format(val_loss))
+        print("Epoch", "{:3d}".format(e), "| Test Acc:", "{:8.4f}".format(val_acc), "| Test Loss:", "{:8.4f}".format(val_loss), end=" ")
         val_accs.append(val_acc)
         val_losses.append(val_losses)
          # visualize weights
@@ -214,6 +217,7 @@ def train_model(model, trainloader, testloader, args, tv_fn, device):
     results['val_losses'] = val_losses
     results['losses'] = losses
     results['TVs'] = TVs
+    results['args'] = args
 
     if not args.no_log:
         with open(args.log_file, 'wb') as f:
@@ -225,15 +229,16 @@ def train_model(model, trainloader, testloader, args, tv_fn, device):
 def main():
     args = get_args()
     # up to 1 type of regularization allowed
-    assert (args.l1 and not args.l2 and not args.tv) or \
-           (args.l2 and not args.l1 and not args.tv) or \
-           (args.tv and not args.l1 and not args.l2) or \
-           (not args.tv and not args.l1 and not args.l2)
+    # assert (args.l1 and not args.l2 and not args.tv) or \
+    #        (args.l2 and not args.l1 and not args.tv) or \
+    #        (args.tv and not args.l1 and not args.l2) or \
+    #        (not args.tv and not args.l1 and not args.l2)
 
     # set seeds
     random.seed(args.seed)
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
+    torch.backends.cudnn.deterministic=True
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     trainloader, testloader = setup_data(args)
@@ -252,7 +257,7 @@ def main():
         raise Exception('Given model is invalid.')
 
     # transfer init weights to reduce compounding factors of stochasticity
-    if args.tv:
+    if args.tv or args.l1 or args.l2:
         model.load_state_dict(torch.load(args.load_model_init))
     else:
         torch.save(model.state_dict(),args.save_model_init)

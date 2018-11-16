@@ -5,8 +5,64 @@
 # AlexNet + Adam Experiments
 # python3 main.py --optim adam --lr .0005 --epochs 100 --model_file ./trained_models/alexnet_adam.pt --log_file ./results/alexnet_adam.pck --save_model_init ./init_models/alexnet_adam.state
 # python3 main.py --optim adam --lr .0005 --epochs 100 -tv --model_file ./trained_models/alexnet_adam_tv.pt --log_file ./results/alexnet_adam_tv.pck --load_model_init ./init_models/alexnet_adam.state
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+# ResNet20 + SGD + lambda_TV tests
+# python3 main.py --optim SGD --lr .1 --epochs 150 --model resnet20 --model_file ./trained_models/resnet20_sgd_mu_150.pt --log_file ./results/resnet20_sgd_mu_150.pck --save_model_init ./init_models/resnet20_sgd_mu_150.state
+# python3 main.py --optim SGD --lr .1 --lambda_TV 1 --epochs 150 -tv --model resnet20 --model_file ./trained_models/resnet20_sgd_mu_tv_150.pt --log_file ./results/resnet20_sgd_mu_tv_150.pck --load_model_init ./init_models/resnet20_sgd_mu_150.state
+# python3 main.py --optim SGD --lr .1 --lambda_TV 5 --epochs 150 -tv --model resnet20 --model_file ./trained_models/resnet20_sgd_mu_tv_150_lambda_5.pt --log_file ./results/resnet20_sgd_mu_tv_150_lambda_5.pck --load_model_init ./init_models/resnet20_sgd_mu_150.state
+# python3 main.py --optim SGD --lr .1 --lambda_TV 0.5 --epochs 150 -tv --model resnet20 --model_file ./trained_models/resnet20_sgd_mu_tv_150_lambda_p5.pt --log_file ./results/resnet20_sgd_mu_tv_150_lambda_p5.pck --load_model_init ./init_models/resnet20_sgd_mu_150.state
+# python3 main.py --optim SGD --lr .1 --lambda_TV 0.1 --epochs 150 -tv --model resnet20 --model_file ./trained_models/resnet20_sgd_mu_tv_150_lambda_p1.pt --log_file ./results/resnet20_sgd_mu_tv_150_lambda_p1.pck --load_model_init ./init_models/resnet20_sgd_mu_150.state
+# python3 main.py --optim SGD --lr .1 --lambda_TV 1 --epochs 100 -tv --model resnet20 --model_file ./trained_models/resnet20_sgd_mu_tv_150_2.pt --log_file ./results/resnet20_sgd_mu_tv_150_2.pck --load_model_init ./init_models/resnet20_sgd_mu_150.state
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ResNet20 + SGD + lambda_TV + only initial layer mask
+# python3 main.py --optim SGD --lr .1 --lambda_TV 1 --epochs 150 -tv --mask 0 --model resnet20 --model_file ./trained_models/resnet20_sgd_mu_tv_150_initialMask.pt --log_file ./results/resnet20_sgd_mu_tv_150_initialMask.pck --load_model_init ./init_models/resnet20_sgd_mu_150.state
+# python3 main.py --optim SGD --lr .1 --lambda_TV 5 --epochs 150 -tv --mask 0 --model resnet20 --model_file ./trained_models/resnet20_sgd_mu_tv_150_lambda_5_initialMask.pt --log_file ./results/resnet20_sgd_mu_tv_150_lambda_5_initialMask.pck --load_model_init ./init_models/resnet20_sgd_mu_150.state
+# python3 main.py --optim SGD --lr .1 --lambda_TV 0.5 --epochs 150 -tv --mask 0 --model resnet20 --model_file ./trained_models/resnet20_sgd_mu_tv_150_lambda_p5_initialMask.pt --log_file ./results/resnet20_sgd_mu_tv_150_lambda_p5_initialMask.pck --load_model_init ./init_models/resnet20_sgd_mu_150.state
+# python3 main.py --optim SGD --lr .1 --lambda_TV 0.1 --epochs 150 -tv --mask 0 --model resnet20 --model_file ./trained_models/resnet20_sgd_mu_tv_150_lambda_p1_initialMask.pt --log_file ./results/resnet20_sgd_mu_tv_150_lambda_p1_initialMask.pck --load_model_init ./init_models/resnet20_sgd_mu_150.state
+
+# ResNet20 + SGD + lambda_TV + only 1,2,3 layer mask
+# python3 main.py --optim SGD --lr .1 --lambda_TV 1 --epochs 150 -tv --mask 1 --model resnet20 --model_file ./trained_models/resnet20_sgd_mu_tv_150_firstMask.pt --log_file ./results/resnet20_sgd_mu_tv_150_firstMask.pck --load_model_init ./init_models/resnet20_sgd_mu_150.state
+# python3 main.py --optim SGD --lr .1 --lambda_TV 5 --epochs 150 -tv --mask 1 --model resnet20 --model_file ./trained_models/resnet20_sgd_mu_tv_150_lambda_5_firstMask.pt --log_file ./results/resnet20_sgd_mu_tv_150_lambda_5_firstMask.pck --load_model_init ./init_models/resnet20_sgd_mu_150.state
+# python3 main.py --optim SGD --lr .1 --lambda_TV 0.5 --epochs 150 -tv --mask 1 --model resnet20 --model_file ./trained_models/resnet20_sgd_mu_tv_150_lambda_p5_firstMask.pt --log_file ./results/resnet20_sgd_mu_tv_150_lambda_p5_firstMask.pck --load_model_init ./init_models/resnet20_sgd_mu_150.state
+# python3 main.py --optim SGD --lr .1 --lambda_TV 0.1 --epochs 150 -tv --mask 1 --model resnet20 --model_file ./trained_models/resnet20_sgd_mu_tv_150_lambda_p1_firstMask.pt --log_file ./results/resnet20_sgd_mu_tv_150_lambda_p1_firstMask.pck --load_model_init ./init_models/resnet20_sgd_mu_150.state
+
+# 2 mask
+# python3 main.py --optim SGD --lr .1 --lambda_TV 1 --epochs 150 -tv --mask 2 --model resnet20 --model_file ./trained_models/resnet20_sgd_mu_tv_150_secondMask.pt --log_file ./results/resnet20_sgd_mu_tv_150_secondMask.pck --load_model_init ./init_models/resnet20_sgd_mu_150.state
+# python3 main.py --optim SGD --lr .1 --lambda_TV 5 --epochs 150 -tv --mask 2 --model resnet20 --model_file ./trained_models/resnet20_sgd_mu_tv_150_lambda_5_secondMask.pt --log_file ./results/resnet20_sgd_mu_tv_150_lambda_5_secondMask.pck --load_model_init ./init_models/resnet20_sgd_mu_150.state
+# python3 main.py --optim SGD --lr .1 --lambda_TV 0.5 --epochs 150 -tv --mask 2 --model resnet20 --model_file ./trained_models/resnet20_sgd_mu_tv_150_lambda_p5_secondMask.pt --log_file ./results/resnet20_sgd_mu_tv_150_lambda_p5_secondMask.pck --load_model_init ./init_models/resnet20_sgd_mu_150.state
+# python3 main.py --optim SGD --lr .1 --lambda_TV 0.1 --epochs 150 -tv --mask 2 --model resnet20 --model_file ./trained_models/resnet20_sgd_mu_tv_150_lambda_p1_secondMask.pt --log_file ./results/resnet20_sgd_mu_tv_150_lambda_p1_secondMask.pck --load_model_init ./init_models/resnet20_sgd_mu_150.state
+
+# 3 mask
+# python3 main.py --optim SGD --lr .1 --lambda_TV 1 --epochs 150 -tv --mask 3 --model resnet20 --model_file ./trained_models/resnet20_sgd_mu_tv_150_thirdMask.pt --log_file ./results/resnet20_sgd_mu_tv_150_thirdMask.pck --load_model_init ./init_models/resnet20_sgd_mu_150.state
+# python3 main.py --optim SGD --lr .1 --lambda_TV 5 --epochs 150 -tv --mask 3 --model resnet20 --model_file ./trained_models/resnet20_sgd_mu_tv_150_lambda_5_thirdMask.pt --log_file ./results/resnet20_sgd_mu_tv_150_lambda_5_thirdMask.pck --load_model_init ./init_models/resnet20_sgd_mu_150.state
+# python3 main.py --optim SGD --lr .1 --lambda_TV 0.5 --epochs 150 -tv --mask 3 --model resnet20 --model_file ./trained_models/resnet20_sgd_mu_tv_150_lambda_p5_thirdMask.pt --log_file ./results/resnet20_sgd_mu_tv_150_lambda_p5_thirdMask.pck --load_model_init ./init_models/resnet20_sgd_mu_150.state
+# python3 main.py --optim SGD --lr .1 --lambda_TV 0.1 --epochs 150 -tv --mask 3 --model resnet20 --model_file ./trained_models/resnet20_sgd_mu_tv_150_lambda_p1_thirdMask.pt --log_file ./results/resnet20_sgd_mu_tv_150_lambda_p1_thirdMask.pck --load_model_init ./init_models/resnet20_sgd_mu_150.state
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+# Combined optimal masks (TODO)
+
+
+# Quick Adam Experiments
+python3 main.py --optim adam --lr .001 --epochs 150 --model resnet20 --model_file ./trained_models/resnet20_adam_mu_150.pt --log_file ./results/resnet20_adam_150.pck --save_model_init ./init_models/resnet20_adam_150.state
+python3 main.py --optim adam --lr .001 --lambda_TV 1 --epochs 150 -tv --mask 0 --model resnet20 --model_file ./trained_models/resnet20_adam_tv_150_initialMask.pt --log_file ./results/resnet20_adam_tv_150_initialMask.pck --load_model_init ./init_models/resnet20_adam_150.state
+python3 main.py --optim adam --lr .001 --lambda_TV 0.1 --epochs 150 -tv --mask 1 --model resnet20 --model_file ./trained_models/resnet20_adam_tv_150_firstMask.pt --log_file ./results/resnet20_adam_tv_150_firstMask.pck --load_model_init ./init_models/resnet20_adam_150.state
+python3 main.py --optim adam --lr .001 --lambda_TV 0.1 --epochs 150 -tv --mask 2 --model resnet20 --model_file ./trained_models/resnet20_adam_tv_150_secondMask.pt --log_file ./results/resnet20_adam_tv_150_secondMask.pck --load_model_init ./init_models/resnet20_adam_150.state
+python3 main.py --optim adam --lr .001 --lambda_TV 0.5 --epochs 150 -tv --mask 3 --model resnet20 --model_file ./trained_models/resnet20_adam_tv_150_thirdMask.pt --log_file ./results/resnet20_adam_tv_150_thirdMask.pck --load_model_init ./init_models/resnet20_adam_150.state
+python3 main.py --optim adam --lr .001 --lambda_TV 0.1 --epochs 150 -tv --model resnet20 --model_file ./trained_models/resnet20_adam_tv_150_p1.pt --log_file ./results/resnet20_adam_tv_150_p1.pck --load_model_init ./init_models/resnet20_adam_150.state
+python3 main.py --optim adam --lr .001 --lambda_TV 0.5 --epochs 150 -tv --model resnet20 --model_file ./trained_models/resnet20_adam_tv_150_p5.pt --log_file ./results/resnet20_adam_tv_150_p5.pck --load_model_init ./init_models/resnet20_adam_150.state
+python3 main.py --optim adam --lr .001 --lambda_TV 1 --epochs 150 -tv --model resnet20 --model_file ./trained_models/resnet20_adam_tv_150_1.pt --log_file ./results/resnet20_adam_tv_150_1.pck --load_model_init ./init_models/resnet20_adam_150.state
+
+
+
+
 # ResNet20 + SGD + L1/L2 Experiments
-python3 main.py --optim SGD --lr .1 --epochs 1 --model resnet20 --model_file ./trained_models/resnet20_sgd_mu.pt --log_file ./results/resnet20_sgd_mu.pck --save_model_init ./init_models/resnet20_sgd_mu.state
-python3 main.py --optim SGD --lr .1 --lambda_TV 1 --epochs 100 -tv --model resnet20 --model_file ./trained_models/resnet20_sgd_mu_tv.pt --log_file ./results/resnet20_sgd_mu_tv.pck --load_model_init ./init_models/resnet20_sgd_mu.state
-python3 main.py --optim SGD --lr .1 --lambda_reg 1e-4 --epochs 100 -l1 --model resnet20 --model_file ./trained_models/resnet20_sgd_mu_l1.pt --log_file ./results/resnet20_sgd_mu_l1.pck --load_model_init ./init_models/resnet20_sgd_mu.state
-python3 main.py --optim SGD --lr .1 --lambda_reg 1e-4 --epochs 100 -l2 --model resnet20 --model_file ./trained_models/resnet20_sgd_mu_l2.pt --log_file ./results/resnet20_sgd_mu_l2.pck --load_model_init ./init_models/resnet20_sgd_mu.state
+# python3 main.py --optim SGD --lr .1 --lambda_TV .1 --epochs 100 -tv --model resnet20 --model_file ./trained_models/resnet20_sgd_mu_tv2_100_2.pt --log_file ./results/resnet20_sgd_mu_tv2_100_2.pck --load_model_init ./init_models/resnet20_sgd_mu_100.state
+# python3 main.py --optim SGD --lr .1 --lambda_TV 1 --epochs 5 -tv --model resnet20 --model_file ./trained_models/resnet20_sgd_mu_tv_100_3.pt --log_file ./results/resnet20_sgd_mu_tv_100_3.pck --load_model_init ./init_models/resnet20_sgd_mu_100.state
+# python3 main.py --optim SGD --lr .1 --lambda_reg 1e-4 --lambda_TV 1 -tv --epochs 200 -l1 --model resnet20 --model_file ./trained_models/resnet20_sgd_mu_l1_tv.pt --log_file ./results/resnet20_sgd_mu_l1_tv.pck --load_model_init ./init_models/resnet20_sgd_mu.state
+# python3 main.py --optim SGD --lr .1 --lambda_reg 1e-4 --lambda_TV 1 -tv --epochs 200 -l2 --model resnet20 --model_file ./trained_models/resnet20_sgd_mu_l2_tv.pt --log_file ./results/resnet20_sgd_mu_l2_tv.pck --load_model_init ./init_models/resnet20_sgd_mu.state
+# python3 main.py --optim SGD --lr .1 --lambda_reg 1e-4 --epochs 200 -l1 --model resnet20 --model_file ./trained_models/resnet20_sgd_mu_l1.pt --log_file ./results/resnet20_sgd_mu_l1.pck --load_model_init ./init_models/resnet20_sgd_mu.state
+# python3 main.py --optim SGD --lr .1 --lambda_reg 1e-4 --epochs 200 -l2 --model resnet20 --model_file ./trained_models/resnet20_sgd_mu_l2.pt --log_file ./results/resnet20_sgd_mu_l2.pck --load_model_init ./init_models/resnet20_sgd_mu.state
