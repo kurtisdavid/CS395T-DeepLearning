@@ -82,7 +82,57 @@ def TVLossMat(model, print_=False, layer_mask=None):
     #     print("final_pixels", pixels)
     return tv/len(layer_mask), tvs
 
-def TVLossMatResNet(model, layer_mask=None, TVLoss=TVMat):
+
+def TVMat(weights):
+    x = torch.zeros_like(weights)
+    y = torch.zeros_like(weights)
+    x[:, :, :-1, :-1] = (weights[:, :, 1:, :-1] - weights[:, :, :-1, :-1]) ** 2
+    y[:, :, :-1, :-1] = (weights[:, :, :-1, 1:] - weights[:, :, :-1, :-1]) ** 2
+    return torch.sum(torch.sqrt(x+y+1e-6))
+
+def TVMat3D(weights):
+    x = torch.zeros_like(weights)
+    y = torch.zeros_like(weights)
+    z = torch.zeros_like(weights)
+
+    x[:, :-1, :-1, :-1] = (weights[:, :-1, 1:, :-1] - weights[:, :-1, :-1, :-1]) ** 2
+    y[:, :-1, :-1, :-1] = (weights[:, :-1, :-1, 1:] - weights[:, :-1, :-1, :-1]) ** 2
+    z[:, :-1, :-1, :-1] = (weights[:, 1:, :-1, :-1] - weights[:, :-1, :-1, :-1]) ** 2
+
+    # regularize the last channel
+    z_x = (weights[:, -1, 1:, :-1] - weights[:, -1, :-1, :-1]) ** 2
+    z_y = (weights[:, -1, :-1, 1:] - weights[:, -1, :-1, :-1]) ** 2
+
+    return torch.sum(torch.sqrt(x + y + z + 1e-6)) + torch.sum(torch.sqrt(z_x + z_y + 1e-6))
+
+def TVMat4D(weights):
+    x = torch.zeros_like(weights)
+    y = torch.zeros_like(weights)
+    z = torch.zeros_like(weights)
+    a = torch.zeros_like(weights)
+    a_x = torch.zeros_like(weights)
+    a_y = torch.zeros_like(weights)
+    a_z = torch.zeros_like(weights)
+
+    x[:-1, :-1, :-1, :-1] = (weights[:-1, :-1, 1:, :-1] - weights[:-1, :-1, :-1, :-1]) ** 2
+    y[:-1, :-1, :-1, :-1] = (weights[:-1, :-1, :-1, 1:] - weights[:-1, :-1, :-1, :-1]) ** 2
+    z[:-1, :-1, :-1, :-1] = (weights[:-1, 1:, :-1, :-1] - weights[:-1, :-1, :-1, :-1]) ** 2
+    a[:-1, :-1, :-1, :-1] = (weights[1:, :-1, :-1, :-1] - weights[:-1, :-1, :-1, :-1]) ** 2
+
+    # regularize the last cube
+    a_x[-1, :-1, :-1, :-1] = (weights[-1, :-1, 1:, :-1] - weights[-1, :-1, :-1, :-1]) ** 2
+    a_y[-1, :-1, :-1, :-1] = (weights[-1, :-1, :-1, 1:] - weights[-1, :-1, :-1, :-1]) ** 2
+    a_z[-1, :-1, :-1, :-1] = (weights[-1, 1:, :-1, :-1] - weights[-1, :-1, :-1, :-1]) ** 2
+
+    # regularize the last channel
+    z_x = (weights[:, -1, 1:, :-1] - weights[:, -1, :-1, :-1]) ** 2
+    z_y = (weights[:, -1, :-1, 1:] - weights[:, -1, :-1, :-1]) ** 2
+
+    return torch.sum(torch.sqrt(x + y + z + a + 1e-6)) \
+        + torch.sum(torch.sqrt(a_x + a_y + a_z + 1e-6)) \
+        + torch.sum(torch.sqrt(z_x + z_y + 1e-6))
+
+def TVLossResNet(model, layer_mask=None, TVLoss=TVMat):
 
     blocks = [model.conv1, model.layer1, model.layer2, model.layer3]
     if layer_mask is None:
@@ -123,49 +173,3 @@ def TVLossMatResNet(model, layer_mask=None, TVLoss=TVMat):
                 total += curr
             tvs.append(total/len(basic_blocks))
     return tv/len(layer_mask), tvs
-
-def TVMat(weights):
-    x = torch.zeros_like(weights)
-    y = torch.zeros_like(weights)
-    x[:, :, :-1, :-1] = (weights[:, :, 1:, :-1] - weights[:, :, :-1, :-1]) ** 2
-    y[:, :, :-1, :-1] = (weights[:, :, :-1, 1:] - weights[:, :, :-1, :-1]) ** 2
-    return torch.sum(torch.sqrt(x+y+1e-6))
-
-def TVMat3D(weights):
-    x = torch.zeros_like(weights)
-    y = torch.zeros_like(weights)
-    z = torch.zeros_like(weights)
-    
-    x[:, :-1, :-1, :-1] = (weights[:, :-1, 1:, :-1] - weights[:, :-1, :-1, :-1]) ** 2
-    y[:, :-1, :-1, :-1] = (weights[:, :-1, :-1, 1:] - weights[:, :-1, :-1, :-1]) ** 2
-    z[:, :-1, :-1, :-1] = (weights[:, 1:, :-1, :-1] - weights[:, :-1, :-1, :-1]) ** 2
-    
-    # regularize the last channel
-    z_x = (weights[:, -1, 1:, :-1] - weights[:, -1, :-1, :-1]) ** 2
-    z_y = (weights[:, -1, :-1, 1:] - weights[:, -1, :-1, :-1]) ** 2
-    
-    return torch.sum(torch.sqrt(x + y + z + 1e-6)) + torch.sum(torch.sqrt(z_x + z_y + 1e-6))
-
-def TVMat4D(weights):
-    x = torch.zeros_like(weights)
-    y = torch.zeros_like(weights)
-    z = torch.zeros_like(weights)
-    a = torch.zeros_like(weights)
-    
-    x[:-1, :-1, :-1, :-1] = (weights[:-1, :-1, 1:, :-1] - weights[:-1, :-1, :-1, :-1]) ** 2
-    y[:-1, :-1, :-1, :-1] = (weights[:-1, :-1, :-1, 1:] - weights[:-1, :-1, :-1, :-1]) ** 2
-    z[:-1, :-1, :-1, :-1] = (weights[:-1, 1:, :-1, :-1] - weights[:-1, :-1, :-1, :-1]) ** 2
-    a[:-1, :-1, :-1, :-1] = (weights[1:, :-1, :-1, :-1] - weights[:-1, :-1, :-1, :-1]) ** 2
-    
-    # regularize the last cube
-    a_x[-1, :-1, :-1, :-1] = (weights[-1, :-1, 1:, :-1] - weights[-1, :-1, :-1, :-1]) ** 2
-    a_y[-1, :-1, :-1, :-1] = (weights[-1, :-1, :-1, 1:] - weights[-1, :-1, :-1, :-1]) ** 2
-    a_z[-1, :-1, :-1, :-1] = (weights[-1, 1:, :-1, :-1] - weights[-1, :-1, :-1, :-1]) ** 2
-    
-    # regularize the last channel
-    z_x = (weights[:, -1, 1:, :-1] - weights[:, -1, :-1, :-1]) ** 2
-    z_y = (weights[:, -1, :-1, 1:] - weights[:, -1, :-1, :-1]) ** 2
-    
-    return torch.sum(torch.sqrt(x + y + z + a + 1e-6)) \
-        + torch.sum(torch.sqrt(a_x + a_y + a_z + 1e-6)) \
-        + torch.sum(torch.sqrt(z_x + z_y + 1e-6))
