@@ -19,7 +19,10 @@ def get_args():
     parser = argparse.ArgumentParser(description='main.py')
 
     # true or false args
+    parser.add_argument('-no_tv', action='store_true', default=False, help='use TV regularization')
     parser.add_argument('-tv', action='store_true', default=False, help='use TV regularization')
+    parser.add_argument('-tv3d', action='store_true', default=False, help='use 3D TV regularization')
+    parser.add_argument('-tv4d', action='store_true', default=False, help='use 4D TV regularization')
     parser.add_argument('-l1', action='store_true', default=False, help='use L1 weight decay')
     parser.add_argument('-l2', action='store_true', default=False, help='use L2 weight decay')
     parser.add_argument('-weights', action='store_true', default=False, help='save weights')
@@ -36,6 +39,7 @@ def get_args():
     parser.add_argument('--mask', nargs='+', type=int, default=None, help='layer mask for TV')
     parser.add_argument('--lambda_reg', type=float, default=1e-4, help='l1/l2 regularization weight')
     parser.add_argument('--lambda_TV', type=float, default=1, help='tv regularization weight')
+    parser.add_argument('--lambda_mask', nargs='+', type=float, default=None, help='lambdas for each layer in mask')
     parser.add_argument('--model_file', type=str, default='./model.pt', help='where to save trained model')
     parser.add_argument('--log_file',
                         type=str,
@@ -46,12 +50,12 @@ def get_args():
                         type=str,
                         default=None,
                         help='use to start with same initial weights',
-                        required='-tv' in sys.argv or '-l1' in sys.argv or '-l2' in sys.argv)
+                        required='-no_tv' not in sys.argv)
     parser.add_argument('--save_model_init',
                         type=str,
                         default='./default.pt',
                         help='save init for a given trial name string',
-                        required='-tv' not in sys.argv and '-l1' not in sys.argv and '-l2' not in sys.argv)
+                        required='-no_tv' in sys.argv)
 
     args = parser.parse_args()
     return args
@@ -192,9 +196,14 @@ def train_model(model, trainloader, testloader, args, tv_fn, device):
             # classification loss
             class_loss = criterion(batch_output,batch_labels)
             # total variation loss
-            TV_loss, _ = tv_fn(model)
-            if args.tv:
-                loss = class_loss + lambda_TV*TV_loss
+            TV_loss, layer_tv = tv_fn(model)
+            if not args.no_tv and args.lambda_mask is None:
+                TV_loss = lambda_TV*TV_loss
+                loss = class_loss + TV_loss
+            elif not args.no_tv and len(layer_tv) == len(args.lambda_mask):
+                TV_loss = sum([layer_tv[i]*args.lambda_mask[i]
+                                          for i in range(len(args.lambda_mask))])
+                loss = class_loss + TV_loss
             else:
                 loss = class_loss
             loss.backward()
@@ -204,7 +213,7 @@ def train_model(model, trainloader, testloader, args, tv_fn, device):
 
 
             class_losses.append(class_loss.item())
-            TV_losses.append(TV_loss.item()*lambda_TV)
+            TV_losses.append(TV_loss.item())
 
         losses.append(np.mean(class_losses))
         print(" | Train loss:", "{:8.4f}".format(losses[-1]), "| Init TV:", "{:8.4f}".format(init), "| TV loss:", "{:8.4f}".format(np.mean(TV_losses)))
@@ -223,7 +232,7 @@ def train_model(model, trainloader, testloader, args, tv_fn, device):
         with open(args.log_file, 'wb') as f:
             pickle.dump(results, f)
 
-    torch.save(model, args.model_file)
+        torch.save(model, args.model_file)
 
 
 def main():
@@ -233,6 +242,21 @@ def main():
     #        (args.l2 and not args.l1 and not args.tv) or \
     #        (args.tv and not args.l1 and not args.l2) or \
     #        (not args.tv and not args.l1 and not args.l2)
+
+    assert args.lambda_mask is None or len(args.lambda_mask)==len(args.mask)
+    assert (not args.no_tv and (args.tv and not args.tv3d and not args.tv4d) or \
+           (args.tv3d and not args.tv and not args.tv4d) or \
+           (args.tv4d and not args.tv and not args.tv3d) ) or \
+           (not args.tv and not args.tv3d and not args.tv4d)
+
+    tv_state = (int(args.tv),int(args.tv3d),int(args.tv4d))
+    tv_dict = {
+        (1,0,0): TVMat,
+        (0,1,0): TVMat3D,
+        (0,0,1): TVMat4D
+    }
+    tv_loss = tv_dict[tv_state]
+
 
     # set seeds
     random.seed(args.seed)
@@ -252,12 +276,12 @@ def main():
         if args.mask == None:
             args.mask = [0,1,2,3]
         model = resnet20().to(device)
-        tv_fn = lambda model: TVLossMatResNet(model, args.mask)
+        tv_fn = lambda model: TVLossResNet(model, args.mask, tv_loss)
     else:
         raise Exception('Given model is invalid.')
 
     # transfer init weights to reduce compounding factors of stochasticity
-    if args.tv or args.l1 or args.l2:
+    if not args.no_tv:
         model.load_state_dict(torch.load(args.load_model_init))
     else:
         torch.save(model.state_dict(),args.save_model_init)
