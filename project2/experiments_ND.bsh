@@ -1,16 +1,21 @@
+#!/bin/bash
+# py=python
 # 3D shit
-
 # ResNet20 + SGD + lambda_TV tests
-# python3 main.py --optim SGD --lr .1 --epochs 150 -tv3d -no_tv --model resnet20 --model_file ./trained_models/3d/resnet20_sgd_mu_150.pt --log_file ./results/3d/resnet20_sgd_mu_150.pck --save_model_init ./init_models/3d/resnet20_sgd_mu_150.state
-# python3 main.py --optim SGD --lr .1 --lambda_TV 1 --epochs 150 -tv3d --model resnet20 --model_file ./trained_models/3d/resnet20_sgd_mu_tv_150.pt --log_file ./results/3d/resnet20_sgd_mu_tv_150.pck --load_model_init ./init_models/3d/resnet20_sgd_mu_150.state
-# python3 main.py --optim SGD --lr .1 --lambda_TV 5 --epochs 150 -tv3d --model resnet20 --model_file ./trained_models/3d/resnet20_sgd_mu_tv_150_lambda_5.pt --log_file ./results/3d/resnet20_sgd_mu_tv_150_lambda_5.pck --load_model_init ./init_models/3d/resnet20_sgd_mu_150.state
-# python3 main.py --optim SGD --lr .1 --lambda_TV 0.5 --epochs 150 -tv3d --model resnet20 --model_file ./trained_models/3d/resnet20_sgd_mu_tv_150_lambda_p5.pt --log_file ./results/3d/resnet20_sgd_mu_tv_150_lambda_p5.pck --load_model_init ./init_models/3d/resnet20_sgd_mu_150.state
-# python3 main.py --optim SGD --lr .1 --lambda_TV 0.1 --epochs 150 -tv3d --model resnet20 --model_file ./trained_models/3d/resnet20_sgd_mu_tv_150_lambda_p1.pt --log_file ./results/3d/resnet20_sgd_mu_tv_150_lambda_p1.pck --load_model_init ./init_models/3d/resnet20_sgd_mu_150.state
+# python main.py --optim SGD --lr .1 --epochs 150 -tv3d -no_tv --model resnet20 --model_file ./trained_models/3d/resnet20_sgd_mu_150.pt --log_file ./results/3d/resnet20_sgd_mu_150.pck --save_model_init ./init_models/3d/resnet20_sgd_mu_150.state
+# python main.py --optim SGD --lr .1 --lambda_TV 1 --epochs 150 -tv3d --model resnet20 --model_file ./trained_models/3d/resnet20_sgd_mu_tv_150.pt --log_file ./results/3d/resnet20_sgd_mu_tv_150.pck --load_model_init ./init_models/3d/resnet20_sgd_mu_150.state
+# python main.py --optim SGD --lr .1 --lambda_TV 5 --epochs 150 -tv3d --model resnet20 --model_file ./trained_models/3d/resnet20_sgd_mu_tv_150_lambda_5.pt --log_file ./results/3d/resnet20_sgd_mu_tv_150_lambda_5.pck --load_model_init ./init_models/3d/resnet20_sgd_mu_150.state
+# python main.py --optim SGD --lr .1 --lambda_TV 0.5 --epochs 150 -tv3d --model resnet20 --model_file ./trained_models/3d/resnet20_sgd_mu_tv_150_lambda_p5.pt --log_file ./results/3d/resnet20_sgd_mu_tv_150_lambda_p5.pck --load_model_init ./init_models/3d/resnet20_sgd_mu_150.state
+# python main.py --optim SGD --lr .1 --lambda_TV 0.1 --epochs 150 -tv3d --model resnet20 --model_file ./trained_models/3d/resnet20_sgd_mu_tv_150_lambda_p1.pt --log_file ./results/3d/resnet20_sgd_mu_tv_150_lambda_p1.pck --load_model_init ./init_models/3d/resnet20_sgd_mu_150.state
+python main.py --optim SGD --lr .1 --lambda_TV 0.01 --epochs 150 -tv3d --model resnet20 --model_file ./trained_models/3d/resnet20_sgd_mu_tv_150_lambda_p01.pt --log_file ./results/3d/resnet20_sgd_mu_tv_150_lambda_p01.pck --load_model_init ./init_models/3d/resnet20_sgd_mu_150.state
+python main.py --optim SGD --lr .1 --lambda_TV 0.05 --epochs 150 -tv3d --model resnet20 --model_file ./trained_models/3d/resnet20_sgd_mu_tv_150_lambda_p05.pt --log_file ./results/3d/resnet20_sgd_mu_tv_150_lambda_p05.pck --load_model_init ./init_models/3d/resnet20_sgd_mu_150.state
+
 
 # 4D shit
 
 # ResNet20 + SGD + lambda_TV tests
-# python3 main.py --optim SGD --lr .1 --epochs 150 -tv4d -no_tv --model resnet20 --model_file ./trained_models/4d/resnet20_sgd_mu_150.pt --log_file ./results/4d/resnet20_sgd_mu_150.pck --save_model_init ./init_models/4d/resnet20_sgd_mu_150.state
-python3 main.py --optim SGD --lr .1 --lambda_TV 1 --epochs 150 -tv4d --model resnet20 --model_file ./trained_models/4d/resnet20_sgd_mu_tv_150.pt --log_file ./results/4d/resnet20_sgd_mu_tv_150.pck --load_model_init ./init_models/4d/resnet20_sgd_mu_150.state
-python3 main.py --optim SGD --lr .1 --lambda_TV 0.01 --epochs 150 -tv4d --model resnet20 --model_file ./trained_models/4d/resnet20_sgd_mu_tv_150_lambda_p5.pt --log_file ./results/4d/resnet20_sgd_mu_tv_150_lambda_p5.pck --load_model_init ./init_models/4d/resnet20_sgd_mu_150.state
-python3 main.py --optim SGD --lr .1 --lambda_TV 0.1 --epochs 150 -tv4d --model resnet20 --model_file ./trained_models/4d/resnet20_sgd_mu_tv_150_lambda_p1.pt --log_file ./results/4d/resnet20_sgd_mu_tv_150_lambda_p1.pck --load_model_init ./init_models/4d/resnet20_sgd_mu_150.state
+# python main.py --optim SGD --lr .1 --epochs 150 -tv4d -no_tv --model resnet20 --model_file ./trained_models/4d/resnet20_sgd_mu_150.pt --log_file ./results/4d/resnet20_sgd_mu_150.pck --save_model_init ./init_models/4d/resnet20_sgd_mu_150.state
+# python main.py --optim SGD --lr .1 --lambda_TV 1 --epochs 150 -tv4d --model resnet20 --model_file ./trained_models/4d/resnet20_sgd_mu_tv_150.pt --log_file ./results/4d/resnet20_sgd_mu_tv_150.pck --load_model_init ./init_models/4d/resnet20_sgd_mu_150.state
+# python main.py --optim SGD --lr .1 --lambda_TV 0.01 --epochs 150 -tv4d --model resnet20 --model_file ./trained_models/4d/resnet20_sgd_mu_tv_150_lambda_p5.pt --log_file ./results/4d/resnet20_sgd_mu_tv_150_lambda_p5.pck --load_model_init ./init_models/4d/resnet20_sgd_mu_150.state
+python main.py --optim SGD --lr .1 --lambda_TV 0.05 --epochs 150 -tv4d --model resnet20 --model_file ./trained_models/4d/resnet20_sgd_mu_tv_150_lambda_p05.pt --log_file ./results/4d/resnet20_sgd_mu_tv_150_lambda_p05.pck --load_model_init ./init_models/4d/resnet20_sgd_mu_150.state
+python main.py --optim SGD --lr .1 --lambda_TV 0.1 --epochs 150 -tv4d --model resnet20 --model_file ./trained_models/4d/resnet20_sgd_mu_tv_150_lambda_p1.pt --log_file ./results/4d/resnet20_sgd_mu_tv_150_lambda_p1.pck --load_model_init ./init_models/4d/resnet20_sgd_mu_150.state
