@@ -1,16 +1,15 @@
 #!/bin/bash
 
-#SBATCH -p development
+#SBATCH -p gpu
 #SBATCH -t 00:05:00
-#SBATCH -n 1
-#SBATCH -A iPlant-Collabs 
-#SBATCH -J test-singularity-ncbi-blast
-#SBATCH -o test-singularity-ncbi-blast.o%j
+#SBATCH -N 2
+#SBATCH -n 40
+#SBATCH -J test-singularity-pytorch-yeet
 
 # Set up inputs, parameters, and outputs
-image="simonalpha_ncbi-blast-docker-2015-01-03-791cbc3b0415.img"
-exp="experiments_ND.bsh"
+exp="./experiments_ND.bsh"
 # move into work directory
-cd $WORK/singularity
+cd $WORK/CS395T-DeepLearning/project2
+module load tacc-singularity
 # Run the actual program
-singularity exec ${image} ${exp} -query ${input} -db ${database} -out ${output}
+singularity exec --nv ${SINGULARITY_CACHEDIR}/tacc-pytorch-0.4.1-v1.simg ${exp} 

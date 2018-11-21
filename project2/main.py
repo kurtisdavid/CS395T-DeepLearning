@@ -159,7 +159,7 @@ def train_model(model, trainloader, testloader, args, tv_fn, device):
         val_acc, val_loss = eval_model(model,testloader,criterion,device)
         print("Epoch", "{:3d}".format(e), "| Test Acc:", "{:8.4f}".format(val_acc), "| Test Loss:", "{:8.4f}".format(val_loss), end=" ")
         sys.stdout.flush()
-	val_accs.append(val_acc)
+        val_accs.append(val_acc)
         val_losses.append(val_losses)
          # visualize weights
         if args.weights:
@@ -218,7 +218,7 @@ def train_model(model, trainloader, testloader, args, tv_fn, device):
 
         losses.append(np.mean(class_losses))
         print(" | Train loss:", "{:8.4f}".format(losses[-1]), "| Init TV:", "{:8.4f}".format(init), "| TV loss:", "{:8.4f}".format(np.mean(TV_losses)))
-	sys.stdout.flush()
+    sys.stdout.flush()
 
     results = {}
     # print(val_accs)
