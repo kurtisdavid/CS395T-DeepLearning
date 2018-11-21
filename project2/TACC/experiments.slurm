@@ -1,10 +1,11 @@
 #!/bin/bash
 
 #SBATCH -p gpu
-#SBATCH -t 00:05:00
-#SBATCH -N 2
-#SBATCH -n 40
-#SBATCH -J test-singularity-pytorch-yeet
+#SBATCH -t 24:00:00
+#SBATCH -N 4
+#SBATCH -n 4
+#SBATCH -J TV-experiments
+#SBATCH -o experimental_results.txt
 
 # Set up inputs, parameters, and outputs
 exp="./experiments_ND.bsh"
