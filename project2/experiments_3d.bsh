@@ -1,0 +1,8 @@
+#!/bin/bash
+# py=python
+# 3D individual layer tests
+python main.py --optim SGD --lr .1 --lambda_TV 0.1 --epochs 150 -tv3d --model resnet20 --mask 0 --model_file ./trained_models/3d/resnet20_sgd_mu_tv_150_lambda_p1_initialLayer.pt --log_file ./results/3d/resnet20_sgd_mu_tv_150_lambda_p1_initialLayer.pck --load_model_init ./init_models/3d/resnet20_sgd_mu_150.state
+python main.py --optim SGD --lr .1 --lambda_TV 0.1 --epochs 150 -tv3d --model resnet20 --mask 1 --model_file ./trained_models/3d/resnet20_sgd_mu_tv_150_lambda_p1_firstLayer.pt --log_file ./results/3d/resnet20_sgd_mu_tv_150_lambda_p1_firstLayer.pck --load_model_init ./init_models/3d/resnet20_sgd_mu_150.state
+python main.py --optim SGD --lr .1 --lambda_TV 0.1 --epochs 150 -tv3d --model resnet20 --mask 2 --model_file ./trained_models/3d/resnet20_sgd_mu_tv_150_lambda_p1_secondLayer.pt --log_file ./results/3d/resnet20_sgd_mu_tv_150_lambda_p1_secondLayer.pck --load_model_init ./init_models/3d/resnet20_sgd_mu_150.state
+python main.py --optim SGD --lr .1 --lambda_TV 0.1 --epochs 150 -tv3d --model resnet20 --mask 3 --model_file ./trained_models/3d/resnet20_sgd_mu_tv_150_lambda_p1_thirdLayer.pt --log_file ./results/3d/resnet20_sgd_mu_tv_150_lambda_p1_thirdLayer.pck --load_model_init ./init_models/3d/resnet20_sgd_mu_150.state
+
