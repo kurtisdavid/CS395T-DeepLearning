@@ -27,6 +27,8 @@ def get_args():
     parser.add_argument('-l2', action='store_true', default=False, help='use L2 weight decay')
     parser.add_argument('-weights', action='store_true', default=False, help='save weights')
     parser.add_argument('-no_log', action='store_true', default=False, help='logging experiments')
+    parser.add_argument('-grad_logger', action='store_true', default=False, help='logging gradients every 25 epochs')
+    
 
     # Some common arguments for your convenience
     parser.add_argument('--seed', type=int, default=0, help='RNG seed (default = 0)')
@@ -106,6 +108,16 @@ def visualizeWeights(model, folder, title):
     plt.savefig('./filters/' + title+'.png')
 
 '''
+log gradients to see gradient flow
+'''
+def log_gradients(named_parameters, gradients):
+    for n,p in named_parameters:
+        if p.requires_grad and "bias" not in n:
+            if n not in gradients:
+                gradients[n] = []
+            gradients[n].append(p.grad.abs().mean().item()) 
+
+'''
 evaluation
 '''
 def eval_model(model, testloader, criterion, device):
@@ -135,7 +147,8 @@ def train_model(model, trainloader, testloader, args, tv_fn, device):
     val_losses = []
     val_accs = []
     layer_tvs = [[] for i in range(len(args.mask))]
-
+    gradient_log = {}
+    
     EPOCHS = args.epochs
     lr = args.lr
     lambda_TV = args.lambda_TV
@@ -178,6 +191,9 @@ def train_model(model, trainloader, testloader, args, tv_fn, device):
 
         class_losses = []
         TV_losses = []
+        
+        if e%10 == 0:
+            gradient_log[e] = {}
 
         # annealing learning rate
         if args.optim=='SGD' and e in steps:
@@ -208,6 +224,11 @@ def train_model(model, trainloader, testloader, args, tv_fn, device):
             else:
                 loss = class_loss
             loss.backward()
+            
+            # gradient logger
+            if args.grad_logger and e%10==0:
+                log_gradients(model.named_parameters(),gradient_log[e])     
+            
             # check for gradient problems
             # check_grad(model)
             optim.step()
@@ -228,6 +249,7 @@ def train_model(model, trainloader, testloader, args, tv_fn, device):
     results['losses'] = losses
     results['TVs'] = TVs
     results['args'] = args
+    results['grads'] = gradient_log
 
     if not args.no_log:
         with open(args.log_file, 'wb') as f:
@@ -252,6 +274,7 @@ def main():
 
     tv_state = (int(args.tv),int(args.tv3d),int(args.tv4d))
     tv_dict = {
+        (0,0,0): TVMat,
         (1,0,0): TVMat,
         (0,1,0): TVMat3D,
         (0,0,1): TVMat4D
