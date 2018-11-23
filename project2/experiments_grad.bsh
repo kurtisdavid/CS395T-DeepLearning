@@ -1,0 +1,8 @@
+#!/bin/bash
+# py=python
+# 3D individual layer tests
+python main.py --optim SGD --lr .1 --lambda_TV 0.1 --epochs 150 -no_tv -grad_logger --model resnet20 --model_file ./trained_models/resnet20_sgd_mu_grads.pt --log_file ./results/resnet20_sgd_mu_tv_grads.pck --save_model_init ./init_models/resnet20_sgd_mu_grads.state
+python main.py --optim SGD --lr .1 --lambda_TV 0.1 --epochs 150 -tv -grad_logger --model resnet20 --model_file ./trained_models/resnet20_sgd_mu_tv_p1_grads.pt --log_file ./results/resnet20_sgd_mu_tv_p1_grads.pck --load_model_init ./init_models/resnet20_sgd_mu_grads.state
+python main.py --optim SGD --lr .1 --lambda_TV 0.1 --epochs 150 -tv3d -grad_logger --model resnet20 --model_file ./trained_models/3d/resnet20_sgd_mu_tv_p1_grads.pt --log_file ./results/3d/resnet20_sgd_mu_tv_p1_grads.pck --load_model_init ./init_models/resnet20_sgd_mu_grads.state
+python main.py --optim SGD --lr .1 --lambda_TV 0.05 --epochs 150 -tv4d -grad_logger --model resnet20 --model_file ./trained_models/4d/resnet20_sgd_mu_tv_p05_grads.pt --log_file ./results/4d/resnet20_sgd_mu_tv_p05_grads.pck --load_model_init ./init_models/resnet20_sgd_mu_grads.state
+
