@@ -42,7 +42,7 @@ def get_args():
     parser.add_argument('--lambda_TV', type=float, default=1, help='tv regularization weight')
     parser.add_argument('--lambda_mask', nargs='+', type=float, default=None, help='lambdas for each layer in mask')
     parser.add_argument('--tv_schedule', type=int, default=0, help='only apply tv after this epoch')
-    
+    parser.add_argument('--tv_lambda_schedule', nargs='+', type=float, default=None, help='change lambda over time for total variation') 
     parser.add_argument('--model_file', type=str, default='./model.pt', help='where to save trained model')
     parser.add_argument('--log_file',
                         type=str,
@@ -152,7 +152,12 @@ def train_model(model, trainloader, testloader, args, tv_fn, device):
     
     EPOCHS = args.epochs
     lr = args.lr
-    lambda_TV = args.lambda_TV
+    # setup initial tv lambda
+    if args.tv_lambda_schedule is None:
+        lambda_TV = args.lambda_TV
+    else:
+        lambda_TV = args.tv_lambda_schedule.pop(0)
+    
     lambda_reg = args.lambda_reg
     if not args.l1 and not args.l2:
         lambda_reg = 0
@@ -198,13 +203,16 @@ def train_model(model, trainloader, testloader, args, tv_fn, device):
         if e%10 == 0:
             gradient_log[e] = {}
 
-        # annealing learning rate
+        # annealing learning rate and tv lambda schedule
         if args.optim=='SGD' and e in steps:
             lr /= 10
             optim = torch.optim.SGD(model.parameters(),
                                     lr=lr,
                                     momentum=0.9,
                                     weight_decay=lambda_reg if (args.l1 or args.l2) else 0)
+            if args.tv_lambda_schedule is not None and len(args.tv_lambda_schedule) > 0:
+                lambda_TV = args.tv_lambda_schedule.pop(0)
+ 
         if e == args.tv_schedule:
             args.no_tv = False
         # go through batches
@@ -275,7 +283,8 @@ def main():
            (args.tv3d and not args.tv and not args.tv4d) or \
            (args.tv4d and not args.tv and not args.tv3d) ) or \
            (not args.tv and not args.tv3d and not args.tv4d)
-    
+    # schedule must match the lr update of 0.1, 0.01 and 0.001
+    assert args.tv_lambda_schedule is None or len(args.tv_lambda_schedule) <= 3 
   
     tv_state = (int(args.tv),int(args.tv3d),int(args.tv4d))
     tv_dict = {
