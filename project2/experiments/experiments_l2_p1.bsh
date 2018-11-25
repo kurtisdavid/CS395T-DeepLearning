@@ -1,0 +1,6 @@
+#!/bin/bash
+# py=python
+python main.py --optim SGD --lr .1 --lambda_TV 0.1 --epochs 150 -tv -l2 --model resnet20 --model_file ./trained_models/resnet20_sgd_mu_tv_p1_l2.pt --log_file ./results/resnet20_sgd_mu_tv_p1_l2.pck --load_model_init ./init_models/resnet20_sgd_mu_grads.state
+python main.py --optim SGD --lr .1 --lambda_TV 0.1 --epochs 150 -tv3d -l2 --model resnet20 --model_file ./trained_models/3d/resnet20_sgd_mu_tv_p1_l2.pt --log_file ./results/3d/resnet20_sgd_mu_tv_p1_l2.pck --load_model_init ./init_models/resnet20_sgd_mu_grads.state
+python main.py --optim SGD --lr .1 --lambda_TV 0.1 --epochs 150 -tv4d -l2 --model resnet20 --model_file ./trained_models/4d/resnet20_sgd_mu_tv_p1_l2.pt --log_file ./results/4d/resnet20_sgd_mu_tv_p1_l2.pck --load_model_init ./init_models/resnet20_sgd_mu_grads.state
+
