@@ -27,8 +27,7 @@ def get_args():
     parser.add_argument('-l2', action='store_true', default=False, help='use L2 weight decay')
     parser.add_argument('-weights', action='store_true', default=False, help='save weights')
     parser.add_argument('-no_log', action='store_true', default=False, help='logging experiments')
-    parser.add_argument('-grad_logger', action='store_true', default=False, help='logging gradients every 25 epochs')
-    
+    parser.add_argument('-grad_logger', action='store_true', default=False, help='logging gradients every 25 epochs') 
 
     # Some common arguments for your convenience
     parser.add_argument('--seed', type=int, default=0, help='RNG seed (default = 0)')
@@ -42,6 +41,8 @@ def get_args():
     parser.add_argument('--lambda_reg', type=float, default=1e-4, help='l1/l2 regularization weight')
     parser.add_argument('--lambda_TV', type=float, default=1, help='tv regularization weight')
     parser.add_argument('--lambda_mask', nargs='+', type=float, default=None, help='lambdas for each layer in mask')
+    parser.add_argument('--tv_schedule', type=int, default=0, help='only apply tv after this epoch')
+    
     parser.add_argument('--model_file', type=str, default='./model.pt', help='where to save trained model')
     parser.add_argument('--log_file',
                         type=str,
@@ -52,12 +53,12 @@ def get_args():
                         type=str,
                         default=None,
                         help='use to start with same initial weights',
-                        required='-no_tv' not in sys.argv)
+                        required='-no_tv' not in sys.argv or '-l1' in sys.argv or '-l2' in sys.argv)
     parser.add_argument('--save_model_init',
                         type=str,
                         default='./default.pt',
                         help='save init for a given trial name string',
-                        required='-no_tv' in sys.argv)
+                        required='-no_tv' in sys.argv and '-l1' not in sys.argv and '-l2' not in sys.argv)
 
     args = parser.parse_args()
     return args
@@ -167,6 +168,8 @@ def train_model(model, trainloader, testloader, args, tv_fn, device):
                                 weight_decay=lambda_reg)
     steps = [75,120]
 
+    args.no_tv = True
+
     for e in range(EPOCHS):
         # validation
         val_acc, val_loss = eval_model(model,testloader,criterion,device)
@@ -202,7 +205,8 @@ def train_model(model, trainloader, testloader, args, tv_fn, device):
                                     lr=lr,
                                     momentum=0.9,
                                     weight_decay=lambda_reg if (args.l1 or args.l2) else 0)
-
+        if e == args.tv_schedule:
+            args.no_tv = False
         # go through batches
         for batch_input, batch_labels in trainloader:
             optim.zero_grad()
@@ -271,7 +275,8 @@ def main():
            (args.tv3d and not args.tv and not args.tv4d) or \
            (args.tv4d and not args.tv and not args.tv3d) ) or \
            (not args.tv and not args.tv3d and not args.tv4d)
-
+    
+  
     tv_state = (int(args.tv),int(args.tv3d),int(args.tv4d))
     tv_dict = {
         (0,0,0): TVMat,
@@ -280,8 +285,6 @@ def main():
         (0,0,1): TVMat4D
     }
     tv_loss = tv_dict[tv_state]
-
-
     # set seeds
     random.seed(args.seed)
     np.random.seed(args.seed)
@@ -305,7 +308,7 @@ def main():
         raise Exception('Given model is invalid.')
 
     # transfer init weights to reduce compounding factors of stochasticity
-    if not args.no_tv:
+    if not args.no_tv or args.l1 or args.l2:
         model.load_state_dict(torch.load(args.load_model_init))
     else:
         torch.save(model.state_dict(),args.save_model_init)
