@@ -43,6 +43,8 @@ def get_args():
     parser.add_argument('--lambda_mask', nargs='+', type=float, default=None, help='lambdas for each layer in mask')
     parser.add_argument('--tv_schedule', type=int, default=0, help='only apply tv after this epoch')
     parser.add_argument('--tv_lambda_schedule', nargs='+', type=float, default=None, help='change lambda over time for total variation') 
+    parser.add_argument('--lr_schedule', nargs='+', type=int, default=[75,120], help='when to reduce learning rates')
+    
     parser.add_argument('--model_file', type=str, default='./model.pt', help='where to save trained model')
     parser.add_argument('--log_file',
                         type=str,
@@ -143,6 +145,7 @@ def eval_model(model, testloader, criterion, device):
 trainer
 '''
 def train_model(model, trainloader, testloader, args, tv_fn, device):
+    out_file = args.log_file.split('/')[-1].replace('.pck','.txt')
     losses = []
     TVs = []
     val_losses = []
@@ -171,14 +174,15 @@ def train_model(model, trainloader, testloader, args, tv_fn, device):
                                 lr=lr,
                                 momentum=0.9,
                                 weight_decay=lambda_reg)
-    steps = [75,120]
+    steps = args.lr_schedule
 
     args.no_tv = True
 
     for e in range(EPOCHS):
         # validation
         val_acc, val_loss = eval_model(model,testloader,criterion,device)
-        print("Epoch", "{:3d}".format(e), "| Test Acc:", "{:8.4f}".format(val_acc), "| Test Loss:", "{:8.4f}".format(val_loss), end=" ")
+        with open(out_file, 'a') as f_txt:
+            print("Epoch", "{:3d}".format(e), "| Test Acc:", "{:8.4f}".format(val_acc), "| Test Loss:", "{:8.4f}".format(val_loss), end=" ", file=f_txt)
         sys.stdout.flush()
         val_accs.append(val_acc)
         val_losses.append(val_losses)
@@ -250,7 +254,8 @@ def train_model(model, trainloader, testloader, args, tv_fn, device):
             TV_losses.append(TV_loss.item())
 
         losses.append(np.mean(class_losses))
-        print(" | Train loss:", "{:8.4f}".format(losses[-1]), "| Init TV:", "{:8.4f}".format(init), "| TV loss:", "{:8.4f}".format(np.mean(TV_losses)))
+        with open(out_file, 'a') as f_txt:
+            print(" | Train loss:", "{:8.4f}".format(losses[-1]), "| Init TV:", "{:8.4f}".format(init), "| TV loss:", "{:8.4f}".format(np.mean(TV_losses)), file=f_txt)
     sys.stdout.flush()
 
     results = {}
