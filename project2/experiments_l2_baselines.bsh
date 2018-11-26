@@ -1,0 +1,12 @@
+#!/bin/bash
+# py=python
+
+# have baselines to compare 3d and 4d tvs of using l2
+python main.py --optim SGD --lr .1 -l2 -no_tv --lambda_TV 0.1 --epochs 150 -tv3d --model resnet20 --model_file ./trained_models/3d/resnet20_sgd_mu_l2.pt --log_file ./results/3d/resnet20_sgd_mu_l2.pck --load_model_init ./init_models/resnet20_sgd_mu_150.state
+python main.py --optim SGD --lr .1 -l2 -no_tv --lambda_TV 0.1 --epochs 150 -tv4d --model resnet20 --model_file ./trained_models/4d/resnet20_sgd_mu_l2.pt --log_file ./results/4d/resnet20_sgd_mu_l2.pck --load_model_init ./init_models/resnet20_sgd_mu_150.state
+
+# baslines without l2 and see their 3d and 4d tv
+python main.py --optim SGD --lr .1 -no_tv --lambda_TV 0.1 --epochs 150 -tv3d --model resnet20 --model_file ./trained_models/3d/resnet20_sgd_mu_no_tv.pt --log_file ./results/3d/resnet20_sgd_mu_no_tv.pck --load_model_init ./init_models/resnet20_sgd_mu_150.state
+python main.py --optim SGD --lr .1 -no_tv --lambda_TV 0.1 --epochs 150 -tv4d --model resnet20 --model_file ./trained_models/4d/resnet20_sgd_mu_no_tv.pt --log_file ./results/4d/resnet20_sgd_mu_no_tv.pck --load_model_init ./init_models/resnet20_sgd_mu_150.state
+
+
