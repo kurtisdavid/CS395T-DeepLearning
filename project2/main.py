@@ -27,7 +27,7 @@ def get_args():
     parser.add_argument('-l2', action='store_true', default=False, help='use L2 weight decay')
     parser.add_argument('-weights', action='store_true', default=False, help='save weights')
     parser.add_argument('-no_log', action='store_true', default=False, help='logging experiments')
-    parser.add_argument('-grad_logger', action='store_true', default=False, help='logging gradients every 25 epochs') 
+    parser.add_argument('-grad_logger', action='store_true', default=False, help='logging gradients every 25 epochs')
 
     # Some common arguments for your convenience
     parser.add_argument('--seed', type=int, default=0, help='RNG seed (default = 0)')
@@ -42,9 +42,9 @@ def get_args():
     parser.add_argument('--lambda_TV', type=float, default=1, help='tv regularization weight')
     parser.add_argument('--lambda_mask', nargs='+', type=float, default=None, help='lambdas for each layer in mask')
     parser.add_argument('--tv_schedule', type=int, default=0, help='only apply tv after this epoch')
-    parser.add_argument('--tv_lambda_schedule', nargs='+', type=float, default=None, help='change lambda over time for total variation') 
+    parser.add_argument('--tv_lambda_schedule', nargs='+', type=float, default=None, help='change lambda over time for total variation')
     parser.add_argument('--lr_schedule', nargs='+', type=int, default=[75,120], help='when to reduce learning rates')
-    
+    parser.add_argument('--data_dir', type=str, default='./data', help='data directory to load in cifar')
     parser.add_argument('--model_file', type=str, default='./model.pt', help='where to save trained model')
     parser.add_argument('--log_file',
                         type=str,
@@ -85,10 +85,10 @@ def setup_data(args):
     batch_size = args.train_bs
     test_bs = args.eval_bs
 
-    trainset = dataloader(root='./data', train=True, download=True, transform=transform_train)
+    trainset = dataloader(root=args.data_dir, train=True, download=True, transform=transform_train)
     trainloader = data.DataLoader(trainset, batch_size=batch_size, shuffle=True)
 
-    testset = dataloader(root='./data', train=False, download=True,
+    testset = dataloader(root=args.data_dir, train=False, download=True,
             transform=transform_test)
     testloader = data.DataLoader(testset, batch_size=test_bs, shuffle=False)
 
@@ -118,7 +118,7 @@ def log_gradients(named_parameters, gradients):
         if p.requires_grad and "bias" not in n:
             if n not in gradients:
                 gradients[n] = []
-            gradients[n].append(p.grad.abs().mean().item()) 
+            gradients[n].append(p.grad.abs().mean().item())
 
 '''
 evaluation
@@ -145,14 +145,14 @@ def eval_model(model, testloader, criterion, device):
 trainer
 '''
 def train_model(model, trainloader, testloader, args, tv_fn, device):
-    out_file = args.log_file.split('/')[-1].replace('.pck','.txt')
+    out_file = './outputs/' + args.log_file.split('/')[-2] + '_' + args.log_file.split('/')[-1].replace('.pck','.txt')
     losses = []
     TVs = []
     val_losses = []
     val_accs = []
     layer_tvs = [[] for i in range(len(args.mask))]
     gradient_log = {}
-    
+
     EPOCHS = args.epochs
     lr = args.lr
     # setup initial tv lambda
@@ -160,7 +160,7 @@ def train_model(model, trainloader, testloader, args, tv_fn, device):
         lambda_TV = args.lambda_TV
     else:
         lambda_TV = args.tv_lambda_schedule.pop(0)
-    
+
     lambda_reg = args.lambda_reg
     if not args.l1 and not args.l2:
         lambda_reg = 0
@@ -203,7 +203,7 @@ def train_model(model, trainloader, testloader, args, tv_fn, device):
 
         class_losses = []
         TV_losses = []
-        
+
         if e%10 == 0:
             gradient_log[e] = {}
 
@@ -216,7 +216,7 @@ def train_model(model, trainloader, testloader, args, tv_fn, device):
                                     weight_decay=lambda_reg if (args.l1 or args.l2) else 0)
             if args.tv_lambda_schedule is not None and len(args.tv_lambda_schedule) > 0:
                 lambda_TV = args.tv_lambda_schedule.pop(0)
- 
+
         if e == args.tv_schedule:
             args.no_tv = False
         # go through batches
@@ -240,11 +240,11 @@ def train_model(model, trainloader, testloader, args, tv_fn, device):
             else:
                 loss = class_loss
             loss.backward()
-            
+
             # gradient logger
             if args.grad_logger and e%10==0:
-                log_gradients(model.named_parameters(),gradient_log[e])     
-            
+                log_gradients(model.named_parameters(),gradient_log[e])
+
             # check for gradient problems
             # check_grad(model)
             optim.step()
@@ -289,8 +289,8 @@ def main():
            (args.tv4d and not args.tv and not args.tv3d) ) or \
            (not args.tv and not args.tv3d and not args.tv4d)
     # schedule must match the lr update of 0.1, 0.01 and 0.001
-    assert args.tv_lambda_schedule is None or len(args.tv_lambda_schedule) <= 3 
-  
+    assert args.tv_lambda_schedule is None or len(args.tv_lambda_schedule) <= 3
+
     tv_state = (int(args.tv),int(args.tv3d),int(args.tv4d))
     tv_dict = {
         (0,0,0): TVMat,
