@@ -196,11 +196,15 @@ def save_saliency_map(saliency_map, file_name):
         pickle.dump(saliency_map, f)
 
 def show_all_saliency_maps(saliency_maps):
-    for i in range(len(saliency_maps)):
-        saliency = saliency_maps[i].numpy()
+    num_models = len(saliency_maps)
+    num_classes = len(saliency_maps[i])
 
-        plt.subplot(441 + i)
-        plt.imshow(saliency[i])
+    for i in range(num_classes):            # iterating over classes
+        for j in range(num_models):         # iterating over models
+            saliency = saliency_maps.numpy()
+
+            plt.subplot(num_classes, num_model, 1 + (i * num_models) + j)
+            plt.imshow(saliency[j][i])
 
     plt.show()
         
