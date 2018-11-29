@@ -1,6 +1,7 @@
 import torch
 import matplotlib.pyplot as plt
-
+from torch.autograd import Variable
+import numpy as np
 def TVLoss(model, layer_mask=None):
     conv2D_idxs = [0, 3, 6, 8, 10]
     if layer_mask is None:
@@ -177,19 +178,21 @@ def TVLossResNet(model, layer_mask=None, TVLoss=TVMat):
 
 # Acknowledgment: taken from
 # https://zhuanlan.zhihu.com/p/31421408?fbclid=IwAR2diRqcW8pPm_BxrXgkSK_E29YOeohzP9IOvKELcuTS1K7gLM4rvlv3Bos
-def compute_saliency_map(X, y, model):
-    X_var = Variable(X, requires_grad=True)
-    y_var = Variable(y)
+def compute_saliency_map(X, y, model, device):
+    model.eval()
+    X_var = Variable(X, requires_grad=True).to(device)
+    y_var = Variable(y).to(device)
     saliency = None
 
-    scores = model(X)
+    scores = model(X_var)
     scores = scores.gather(1, y_var.view(-1, 1)).squeeze()
-    scores.backward(torch.FloatTensor([1.0] * X_var.shape[0]))
+    scores.backward(torch.FloatTensor([1.0] * X_var.shape[0]).to(device))
     
     saliency = X_var.grad.data
     saliency = saliency.abs()
     saliency, i = torch.max(saliency,dim=1)
     saliency = saliency.squeeze()
+    return saliency
 
 def save_saliency_map(saliency_map, file_name):
     with open(file_name, 'wb') as f:
@@ -197,15 +200,14 @@ def save_saliency_map(saliency_map, file_name):
 
 def show_all_saliency_maps(saliency_maps):
     num_models = len(saliency_maps)
-    num_classes = len(saliency_maps[i])
+    num_classes = saliency_maps[0].shape[0]
 
     for i in range(num_classes):            # iterating over classes
         for j in range(num_models):         # iterating over models
-            saliency = saliency_maps.numpy()
+            saliency = saliency_maps[j][i,:,:].cpu().numpy()
+            plt.subplot(num_classes, num_models, 1 + (i * num_models) + j)
+            plt.imshow(saliency)
 
-            plt.subplot(num_classes, num_model, 1 + (i * num_models) + j)
-            plt.imshow(saliency[j][i])
-
-    plt.show()
+    plt.savefig('yeet.png')
         
 
