@@ -1,4 +1,5 @@
 import torch
+import matplotlib.pyplot as plt
 
 def TVLoss(model, layer_mask=None):
     conv2D_idxs = [0, 3, 6, 8, 10]
@@ -173,3 +174,34 @@ def TVLossResNet(model, layer_mask=None, TVLoss=TVMat):
                 total += curr
             tvs.append(total/len(basic_blocks))
     return tv/len(layer_mask), tvs
+
+# Acknowledgment: taken from
+# https://zhuanlan.zhihu.com/p/31421408?fbclid=IwAR2diRqcW8pPm_BxrXgkSK_E29YOeohzP9IOvKELcuTS1K7gLM4rvlv3Bos
+def compute_saliency_map(X, y, model):
+    X_var = Variable(X, requires_grad=True)
+    y_var = Variable(y)
+    saliency = None
+
+    scores = model(X)
+    scores = scores.gather(1, y_var.view(-1, 1)).squeeze()
+    scores.backward(torch.FloatTensor([1.0] * X_var.shape[0]))
+    
+    saliency = X_var.grad.data
+    saliency = saliency.abs()
+    saliency, i = torch.max(saliency,dim=1)
+    saliency = saliency.squeeze()
+
+def save_saliency_map(saliency_map, file_name):
+    with open(file_name, 'wb') as f:
+        pickle.dump(saliency_map, f)
+
+def show_all_saliency_maps(saliency_maps):
+    for i in range(len(saliency_maps)):
+        saliency = saliency_maps[i].numpy()
+
+        plt.subplot(441 + i)
+        plt.imshow(saliency[i])
+
+    plt.show()
+        
+
