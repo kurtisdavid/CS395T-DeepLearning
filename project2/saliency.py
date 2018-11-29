@@ -52,6 +52,14 @@ def setup_data(args):
 
     return testloader
 
+def unnormalize(tensor):
+    mean = (0.5071, 0.4865, 0.4409)
+    std = (0.2673, 0.2564, 0.2762)
+
+    for t, m, s in zip(tensor, mean, std):
+        t.mul_(s).add_(m)
+    return tensor
+
 def main():
     args = get_args()
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -60,17 +68,16 @@ def main():
     for X,y in testloader:
         X = X.to(device)
         y = y.to(device)
+
+        image = unnormalize(X)        
         break 
 
     model = resnet20().to(device)
     saliency_maps = []
     for model_path in args.models:
         model.load_state_dict(torch.load(model_path).state_dict())
-        saliency_maps.append(compute_saliency_map(X,y, model,device))
+        saliency_maps.append(compute_saliency_map(image, y, model,device))
     show_all_saliency_maps(saliency_maps)  
-        
-
-     
 
     
 if __name__ == '__main__':
