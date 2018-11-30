@@ -2,6 +2,9 @@ import torch
 import matplotlib.pyplot as plt
 from torch.autograd import Variable
 import numpy as np
+import scipy.ndimage as ndimage
+import cv2
+from torch.nn import functional as F
 def TVLoss(model, layer_mask=None):
     conv2D_idxs = [0, 3, 6, 8, 10]
     if layer_mask is None:
@@ -186,6 +189,7 @@ def compute_saliency_map(X, y, model, device):
 
     scores = model(X_var)
     scores = scores.gather(1, y_var.view(-1, 1)).squeeze()
+#    scores,_ = torch.max(scores,1)
     scores.backward(torch.FloatTensor([1.0] * X_var.shape[0]).to(device))
     
     saliency = X_var.grad.data
@@ -198,16 +202,72 @@ def save_saliency_map(saliency_map, file_name):
     with open(file_name, 'wb') as f:
         pickle.dump(saliency_map, f)
 
-def show_all_saliency_maps(saliency_maps):
+def show_all_saliency_maps(saliency_maps, image):
     num_models = len(saliency_maps)
     num_classes = saliency_maps[0].shape[0]
-
+    
     for i in range(num_classes):            # iterating over classes
         for j in range(num_models):         # iterating over models
+            x = np.moveaxis(image[i,:,:,:].cpu().numpy(),0,2)
             saliency = saliency_maps[j][i,:,:].cpu().numpy()
-            plt.subplot(num_classes, num_models, 1 + (i * num_models) + j)
+            saliency = ndimage.gaussian_filter(saliency, sigma=1)  
+            plt.subplot(num_classes, num_models*2, 1 + (i * num_models*2) + j*2)
             plt.imshow(saliency)
-
+            plt.subplot(num_classes, num_models*2, 1 + (i * num_models*2) + 2*j+1)
+            plt.imshow(x)
+            plt.gcf().set_size_inches(24,24)
     plt.savefig('yeet.png')
-        
+       
+def show_all_CAM(CAM_maps, image, filename):
+    num_models = len(CAM_maps)
+    num_classes = len(CAM_maps[0])
+    print(num_classes)
+    _,_,height,width = image.shape
+    vstack = []
+    for i in range(num_classes):    
+        hstack = []
+        for j in range(num_models):         # iterating over models
+            x = cv2.resize((np.moveaxis(image[0,:,:,:].cpu().numpy(),0,2) * 255).astype('uint8'),(64,64))
+            saliency = CAM_maps[j][i][:,:]
+            heatmap = cv2.applyColorMap(cv2.resize(saliency,(64,64)), cv2.COLORMAP_JET)
+            result = heatmap * 0.5 + x * 0.7
+            hstack.append(result.copy())
+        vstack.append(np.hstack(hstack))
+    final = np.vstack(vstack)
+    cv2.imwrite(filename,final)
+
+
+#https://github.com/metalbubble/CAM/blob/master/pytorch_CAM.py
+def returnCAM(feature_conv, weight_softmax, class_idx):
+    # generate the class activation maps upsample to 256x256
+    size_upsample = (256, 256)
+    bz, nc, h, w = feature_conv.shape
+    output_cam = []
+    for idx in class_idx:
+        print(feature_conv.shape)
+        cam = weight_softmax[idx].dot(feature_conv[0,:,:,:].reshape((nc, h*w)))
+        print(cam.shape)
+        cam = cam.reshape(h, w)
+        cam = cam - np.min(cam)
+        cam_img = cam / np.max(cam)
+        cam_img = np.uint8(255 * cam_img)
+        output_cam.append(cv2.resize(cam_img, size_upsample))
+    return output_cam
+
+def CAM(X, y, model, features_blobs, weight_softmax, device):
+    model.eval()
+    X_var = Variable(X, requires_grad=True).to(device)
+    y_var = Variable(y).to(device)
+
+    scores = model(X_var)
+    h_scores = F.softmax(scores, dim=1).data.squeeze()
+    probs, idx = h_scores.sort(0,True)
+#    print(probs, idx)
+#    print(h_scores.shape)
+#    print(probs.shape)
+#    print(idx.shape)    
+    probs = probs.cpu().numpy()
+    idx = idx.cpu().numpy()
+    
+    return returnCAM(features_blobs[0], weight_softmax, [idx[0]]) 
 

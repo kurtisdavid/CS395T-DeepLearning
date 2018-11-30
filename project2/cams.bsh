@@ -1,0 +1,7 @@
+#!/bin/bash
+# py=python
+
+for i in `seq 1 10`;
+do
+    python3 cam.py --models ./trained_models/resnet20_sgd_mu_150.pt ./trained_models/resnet20_sgd_mu_l2.pt ./trained_models/resnet20_sgd_mu_multiple_tv_tv_tv_tv3d_p02_l2.pt --names baseline l2 l2+tv --bs 1 --save_file cam_$i.jpg
+done
