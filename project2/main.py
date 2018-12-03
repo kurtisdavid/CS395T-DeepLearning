@@ -6,6 +6,8 @@ from torchvision import models, datasets, transforms
 import torch.utils.data as data
 from utils import *
 from models import *
+from compress import compress
+import os
 #import matplotlib.pyplot as plt
 import pickle
 import sys
@@ -55,12 +57,13 @@ def get_args():
                         type=str,
                         default=None,
                         help='use to start with same initial weights',
-                        required='-no_tv' not in sys.argv or '-l1' in sys.argv or '-l2' in sys.argv)
+                        required='--compress' not in sys.argv and ('-no_tv' not in sys.argv or '-l1' in sys.argv or '-l2' in sys.argv))
     parser.add_argument('--save_model_init',
                         type=str,
                         default='./default.pt',
                         help='save init for a given trial name string',
                         required='-no_tv' in sys.argv and '-l1' not in sys.argv and '-l2' not in sys.argv)
+    parser.add_argument('--compress', type=float, default=None)
 
     args = parser.parse_args()
     return args
@@ -322,12 +325,24 @@ def main():
         raise Exception('Given model is invalid.')
 
     # transfer init weights to reduce compounding factors of stochasticity
-    if not args.no_tv or args.l1 or args.l2:
+    if args.load_model_init is not None and (not args.no_tv or args.l1 or args.l2):
         model.load_state_dict(torch.load(args.load_model_init))
     else:
         torch.save(model.state_dict(),args.save_model_init)
-    # train now
-    train_model(model, trainloader, testloader, args, tv_fn, device)
+    if args.compress is not None:
+        print('Goal Deflation', args.compress * 100, '%')
+        for model_state_dict in os.listdir('./compression'):
+            print(model_state_dict)
+            model.load_state_dict(torch.load('./compression/' + model_state_dict))
+            l2_diff, compression_ratio = compress(model, args.compress, args.mask, device)
+            print('Compressed:', compression_ratio * 100, '%')
+            print('Weight L2 Norm Change:', l2_diff)
+            acc, loss = eval_model(model, testloader, nn.CrossEntropyLoss(), device)
+            print('Accuracy:', acc, 'Loss:', loss)
+            print('=' * 80)
+    else:
+        # train now
+        train_model(model, trainloader, testloader, args, tv_fn, device)
 
 
 if __name__ == "__main__":
